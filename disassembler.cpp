@@ -4,13 +4,12 @@
 
 #include "stack.h"
 #include "commands.h"
-#include "compiler.h"
+#include "assembler.h"
 #include "disassembler.h"
 
-CompError_t DisassembleText(Text* text, const char *file_name)
+CompileErr_t DisassembleText(Text* text, const char *file_name)
 {
-    FILE *output_file = nullptr;
-    output_file = fopen(file_name, "w");
+    FILE *output_file = fopen(file_name, "w");
 
     if (output_file == nullptr)
     {
@@ -27,41 +26,48 @@ CompError_t DisassembleText(Text* text, const char *file_name)
     fclose(output_file);
 }
 
-CompError_t ReadCode(Code *codes, const char *file_name)
+CompileErr_t ReadCode(Code *codes, const char *file_name)
 {
     FILE *input_file = fopen(file_name, "rb");
-    //check opening
+    if (!input_file)
+    {
+        perror("ReadCode() failed to open input file");
 
+        return kOpenError;
+    }
 
-    codes->capacity = GetFileSize(input_file) / sizeof(StackType_t);
+    codes->capacity = codes->size = GetFileSize(input_file) / sizeof(StackType_t);
 
     codes->codes_array = (StackType_t *) calloc(codes->capacity, sizeof(StackType_t));
     fread(codes->codes_array, sizeof(StackType_t), codes->capacity, input_file);
 
+    if (fclose(input_file) == EOF)
+    {
+        perror("ReadCode() failed to close input file");
 
-    //check close
-    fclose(input_file);
+        return kCloseError;
+    }
+
 }
 
-CompError_t DisassembleBinFile(const char *input_file_name, const char *output_file_name)
+CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_file_name)
 {
     Code codes = {};
 
     ReadCode(&codes, input_file_name);
-
     FILE *output_file = fopen(output_file_name, "w");
 
     for (size_t i = 0; i < codes.capacity; ++i)
     {
-        char op_code = GetBits(codes.codes_array[i], 4, 0);
+        char op_code = GET_OPCODE(codes.codes_array[i]);
 
-        if (GetBits(codes.codes_array[i], 1, 4))//constants on bits positions
+        if (GET_NUM_BIT(codes.codes_array[i]))//constants on bits positions
         {
             i++;
 
             fprintf(output_file, "%s %d\n", CommandArray[op_code].command_name, codes.codes_array[i]);
         }
-        else if (GetBits(codes.codes_array[i], 1, 5))//constants on bits positions
+        else if (GET_REG_BIT(codes.codes_array[i]))//constants on bits positions
         {
             size_t reg_code = codes.codes_array[++i];
 

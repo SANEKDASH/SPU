@@ -1,14 +1,14 @@
 #include <stdio.h>
 
 #include "commands.h"
-#include "compiler.h"
+#include "assembler.h"
 #include "stack.h"
 #include "executor.h"
 #include "disassembler.h"
 
 int main()
 {
-    INIT_LOG;
+    INIT_LOG;//()
 
     CPU cpu = {};
 

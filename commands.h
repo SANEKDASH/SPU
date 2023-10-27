@@ -14,21 +14,27 @@ typedef enum
 
 typedef enum
 {
-    kSucces     = 0,
-    kOpenError  = 1,
-    kAllocError = 2,
-    kFreeError  = 3,
-    kCloseError = 4,
-} CompError_t;
+    kSuccess        = 0,
+    kOpenError      = 1,
+    kAllocError     = 2,
+    kFreeError      = 3,
+    kCloseError     = 4,
+    kMissingLabel   = 5,
+    kWrongCommand   = 6,
+    kUnclosedBraket = 7,
+    kFoundLabel     = 8,
+    kCpmpileError   = 9,
+} CompileErr_t;
 
 typedef enum
 {
     #define DEF_CMD(name, num, ...) name = num,
 
     #include "code_gen.h"
+    #include "jumps.h"
 
     #undef DEF_CMD
-    kJmp,
+    kLabel,
     kNotACommand,
 } CommandCode_t;
 
@@ -44,27 +50,31 @@ struct Text
     size_t lines_count;
     char *dirty_buf;
     char* buf;
-    long long buf_size;
+    size_t buf_size;
 };
 
-static const size_t kRegCount = 4;
+static const size_t kRegCount   = 4;
+static const size_t kMaxRamSize = 200;
 
 struct CPU
 {
     Stack stack;
     StackType_t reg_array[kRegCount];
+    StackType_t RAM[kMaxRamSize] = {0};
 };
 
 struct Command
 {
     CommandCode_t command_code;
     const char *command_name;
+    bool have_arg;
 };
 
 struct Code
 {
     StackType_t *codes_array = nullptr;
     size_t capacity = 0;
+    size_t size     = 0;
 };
 
 struct Label
@@ -81,13 +91,14 @@ struct LabelArray
     size_t label_count;
 };
 
-static const int kCommandCount = 12;
+static const int kCommandCount = 22;
 
 const Command CommandArray[kCommandCount] =
 {
-#define DEF_CMD(const, num, str, ...) const, str,
+#define DEF_CMD(const, num, str, have_arg,  ...) const, str, have_arg,
 
 #include "code_gen.h"
+#include "jumps.h"
 
 #undef DEF_CMD
 };

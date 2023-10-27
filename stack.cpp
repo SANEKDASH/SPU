@@ -6,6 +6,8 @@
 #include "stack.h"
 #include "debug.h"
 
+#define DEBUG
+
 #ifdef DEBUG
 #define CHECKSTACK(stk) CHECK(stk);StackVerify(stk);STACKDUMP(stk)
 #define DEBUG_ON(...) __VA_ARGS__

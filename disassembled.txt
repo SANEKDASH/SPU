@@ -1,7 +1,12 @@
-push 10
-push rax
-push rcx
-push 5
-push rdx
-sqrt
+push 16
+push 2
+call: 8
+out
 htl
+push 2
+mult
+call: 14
+ret
+push 2
+mult
+ret

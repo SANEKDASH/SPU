@@ -1,0 +1,9 @@
+all:
+	make -f MakeAssembler
+	make -f MakeProcessor
+	make -f MakeDisAssembler
+clean:
+	rm -rf *.o
+	rm -rf *.exe
+	rm -rf *.html
+	rm -rf *.bin 

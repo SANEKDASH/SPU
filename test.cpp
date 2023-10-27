@@ -3,20 +3,17 @@
 #include <sys\stat.h>
 #include <fcntl.h>
 #include <share.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 int main()
 {
+    int a = 100;
+    a = sqrt(a);
 
-    struct _stat data = {};
-    FILE *fp = fopen("output.bin", "rb");
+    printf("%d",a);
 
-    int fd = fileno(fp);
 
-    printf("discriptor = %d\n", fd);
-
-    _fstat(fd, &data);
-
-    printf("size = %ld", data.st_size);
-
-    fclose(fp);
+    return 0;
 }
