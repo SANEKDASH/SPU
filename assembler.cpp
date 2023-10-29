@@ -10,6 +10,8 @@
 #include "debug.h"
 #include "stack.h"
 
+
+
 void TextDtor(Text *text)
 {
     CHECK(text);
@@ -27,6 +29,8 @@ void TextDtor(Text *text)
     text->lines_count = 0;
 }
 
+
+
 size_t GetFileSize(FILE *ptr_file)
 {
     CHECK(ptr_file);
@@ -37,6 +41,8 @@ size_t GetFileSize(FILE *ptr_file)
 
     return  file_info.st_size;
 }
+
+
 
 CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
 {
@@ -83,6 +89,8 @@ CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
     return kSuccess;
 }
 
+
+
 size_t SplitBufIntoWords(char *buf)
 {
     CHECK(buf);
@@ -112,6 +120,8 @@ size_t SplitBufIntoWords(char *buf)
 
     return lines_count;
 }
+
+
 
 void FillText(Text *text)
 {
@@ -143,6 +153,8 @@ void FillText(Text *text)
 
 }
 
+
+
 void PrintTextInFile(FILE *output_file, Text *text)
 {
     for (size_t i = 0; i < text->lines_count; i++)
@@ -151,7 +163,11 @@ void PrintTextInFile(FILE *output_file, Text *text)
     }
 }
 
-// Parse?
+
+
+
+
+
 CommandCode_t SeekCommand(const char *word)
 {
 
@@ -172,6 +188,8 @@ CommandCode_t SeekCommand(const char *word)
 
 }
 
+
+
 ArgCode_t SeekRegister(const char *token)
 {
     for (size_t i = 0; i < kRegCount; i++)
@@ -185,16 +203,81 @@ ArgCode_t SeekRegister(const char *token)
     return kEmmNum;
 }
 
+static bool IsJmpOpCode(StackElemType_t op_code)
+{
+    return op_code == kCall ||
+           op_code == kJmp  ||
+           op_code == kJa   ||
+           op_code == kJae  ||
+           op_code == kJb   ||
+           op_code == kJbe  ||
+           op_code == kJe   ||
+           op_code == kJne;
+}
+
+static CompileErr_t ParseSquareBrakets(char *line,
+                                       StackElemType_t *num_arg,
+                                       StackElemType_t *reg_arg,
+                                       StackElemType_t *op_code,
+                                       size_t line_number)
+{
+    char *reg = nullptr;
+    char *num = nullptr;
+
+    reg = ++line;
+
+    while (*line != '+')
+    {
+        if (*line == ']')
+        {
+            *line == '\0';
+
+            *reg_arg = SeekRegister(reg);
+
+            if (*reg_arg != kEmmNum)
+            {
+                SET_REG_BIT(*op_code);
+            }
+            else
+            {
+                *num_arg = atoi(reg);
+
+                SET_NUM_BIT(*op_code);
+            }
+
+            return kSuccess;
+        }
+        ++line;
+    }
+
+    *(line++) = '\0';
+    num = line;
+
+    while (*line != ']')
+    {
+        if (*line == '\0')
+        {
+            printf(">>unclosed braket! LINE : %d!\n", line_number);
+
+            return kUnclosedBraket;
+        }
+        ++line;
+    }
+    *line = '\0';
+
+    return kSuccess;
+}
+
 CompileErr_t GetArgument(char *token,
-                        StackType_t *op_code,
-                        StackType_t *num_arg,
-                        StackType_t *reg_arg,
-                        LabelArray *labels,
-                        size_t line_number)
+                         StackElemType_t *op_code,
+                         StackElemType_t *num_arg,
+                         StackElemType_t *reg_arg,
+                         LabelArray *labels,
+                         size_t line_number)
 {
     size_t code = 0;
 
-    if (*op_code >= kCall && *op_code <= kJne)
+    if (IsJmpOpCode(*op_code))
     {
         *num_arg = GetLabelIp(token, labels);
 
@@ -206,102 +289,102 @@ CompileErr_t GetArgument(char *token,
         }
 
         SET_NUM_BIT(*op_code);
-        return kSuccess;//sakes
+        return kSuccess;
     }
+
+    char *num = nullptr;
+    char *reg = nullptr;
 
     if (*token == '[')
     {
         SET_RAM_BIT(*op_code);
-        char *num = nullptr;
-        char *reg = nullptr;
-        //this need to bee another function
-        ++token;
-        reg = token;
 
-        while(*token != '+')
-        {
-            if (*token == ']')
-            {
-                *token = '\0';
-                *reg_arg = SeekRegister(reg);
-
-                if (*reg_arg == kEmmNum)
-                {
-                    *num_arg = atoi(reg);
-
-                    SET_NUM_BIT(*op_code);
-
-                    return kSuccess;
-                }
-
-                SET_REG_BIT(*op_code);
-
-                return kSuccess;
-            }
-            ++token;
-        }
-
-        *(token++) = '\0';
-
-        num = token;
-
-        while (*token != ']')
-        {
-            if (*token == '\0')
-            {
-                printf(">>unclosed breket! LINE: %d!\n", line_number);
-            }
-            ++token;
-        }
-
-        *token = '\0';
-        //end of needing
-
+        ParseSquareBrakets(token, num_arg, reg_arg, op_code, line_number);
 
         if (num_arg != nullptr)
         {
-            //if (*num_arg != '\0')
-            //{
-            *num_arg = atof(num);
+            *num_arg = atoi(num);
             SET_NUM_BIT(*op_code);
-            //}
         }
 
         if (reg_arg != nullptr)
         {
-            //if (*reg_arg != '\0')
-            //{
-
             *reg_arg = SeekRegister(reg);
             SET_REG_BIT(*op_code);
-            //}
         }
 
     }
     else if ((code = SeekRegister(token)) != kEmmNum)
     {
         *reg_arg = SeekRegister(token);
+
         SET_REG_BIT(*op_code);
     }
     else
     {
-        *num_arg = atof(token);
+        *num_arg = atoi(token);
 
         SET_NUM_BIT(*op_code);
     }
     return kSuccess;
 }
 
-CompileErr_t ParseLine(char *line,
-                      StackType_t *op_code,
-                      StackType_t *num_arg,
-                      StackType_t *reg_arg,
-                      LabelArray *labels,
-                      size_t line_number)
-{
-    char *token = strtok(line, " \n\r");
 
-    size_t code = SeekCommand(token);
+
+static void SkipSpaces(char **line)
+{
+    while ((**line == ' ' || **line == '\t') && **line != '\0')
+    {
+        ++(*line);
+    }
+}
+
+void GetCommandAndArgsFromStr(char *line, char **command, char **args)
+{
+    SkipSpaces(&line);
+//nado li proverka?
+    if (*line != '\0')
+    {
+        *command = line;
+    }
+
+    while (*line != ' ' && *line != '\t' && *line != '\0')
+    {
+        ++line;
+    }
+
+    *line++ = '\0';
+
+    SkipSpaces(&line);
+
+    if (*line != '\0')
+    {
+        *args = line;
+    }
+
+}
+
+CompileErr_t ParseLine(char *line,
+                       StackElemType_t *op_code,
+                       StackElemType_t *num_arg,
+                       StackElemType_t *reg_arg,
+                       LabelArray *labels,
+                       size_t line_number)
+{
+    char *comment = strchr(line, ';');
+    if (comment != nullptr)
+    {
+        *comment = '\0';
+    }
+
+    char *command = nullptr;
+    char *args    = nullptr;
+
+    GetCommandAndArgsFromStr(line, &command, &args);
+
+    //char *token = strtok(line, " \n\r");
+
+    size_t code = SeekCommand(command);
 
     if (code != kNotACommand && code != kLabel)
     {
@@ -314,16 +397,11 @@ CompileErr_t ParseLine(char *line,
 
     if (CommandArray[code].have_arg)
     {
-        token = strtok(NULL, " ");
+        //token = strtok(NULL, " ");
 
-        if (token)
+        if (args)
         {
-            GetArgument(token,
-                        op_code,
-                        num_arg,
-                        reg_arg,
-                        labels,
-                        line_number);
+            GetArgument(args, op_code, num_arg, reg_arg, labels, line_number);
         }
         else
         {
@@ -333,15 +411,13 @@ CompileErr_t ParseLine(char *line,
     return kSuccess;
 }
 
+
+
 char EncodeText(Text *text, LabelArray *labels, Code *codes)
 {
-    char *token = nullptr;
-
-    StackType_t  op_code = 0;
-    StackType_t  num_arg = 0;
-    StackType_t  reg_arg = 0;
-
-    size_t ip = 0;
+    StackElemType_t  op_code = 0;
+    StackElemType_t  num_arg = 0;
+    StackElemType_t  reg_arg = 0;
 
     for (size_t i = 0; i < text->lines_count; i++)
     {
@@ -375,10 +451,14 @@ char EncodeText(Text *text, LabelArray *labels, Code *codes)
     return op_code;
 }
 
+
+
 size_t GetBits(int num, size_t bit_count, size_t bit_pos)
 {
     return num & ((~((~0) << bit_count)) << bit_pos);
 }
+
+
 
 char DecodeLine(FILE *output_file, char *line)
 {
@@ -410,13 +490,18 @@ char DecodeLine(FILE *output_file, char *line)
     return code;
 }
 
-CompileErr_t CompileText(Text *text, const char *file_name)
-{
-    Code codes = {};
-    LabelArray labels = {};
-    codes.capacity = GetTokenNumber(text, &labels);
 
-    codes.codes_array = (StackType_t *) calloc(codes.capacity, sizeof(StackType_t));
+
+CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
+{
+    LabelArray labels = {};
+    InitLabelArray(&labels);
+
+    Code codes = {};
+    printf("a");
+
+    codes.capacity = GetTokenNumber(text_copy, &labels);
+    codes.codes_array = (StackElemType_t *) calloc(codes.capacity, sizeof(StackElemType_t));
 
     if (codes.codes_array == nullptr)
     {
@@ -431,39 +516,104 @@ CompileErr_t CompileText(Text *text, const char *file_name)
 
     WriteInBin("output.bin", &codes);
 
-    free(codes.codes_array);//
+    LabelArrayDtor(&labels);
+    CodeDtor(&codes);
 
     return kSuccess;
 }
 
-size_t GetTokenNumber(Text *text, LabelArray *labels)
+
+CompileErr_t CodeDtor(Code *codes)
+{
+    free(codes->codes_array);
+
+    return kSuccess;
+}
+
+
+size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
 {
     size_t token_number = 0;
     char *token = nullptr;
 
     const char *delim = " \n\r";
 
-    token = strtok(text->dirty_buf, delim);
-
-    while (token)
+    for (size_t i = 0; i < text_copy->lines_count; i++)
     {
-        if (SeekCommand(token) == kLabel)
-        {
-            *(token + strlen(token) - 1) = '\0';
+        char *comment = strchr(text_copy->lines_ptr[i], ';');
 
-            labels->array[labels->label_count].label_name = token;
-            labels->array[labels->label_count].ip = token_number;
-
-            ++labels->label_count;
-        }
-        else
+        if (comment != nullptr)
         {
-            token_number++;
+            *comment = '\0';
         }
-        token = strtok(NULL, delim);
+
+        token = strtok(text_copy->lines_ptr[i], delim);
+
+        while (token)
+        {
+            if (SeekCommand(token) == kLabel)
+            {
+                *(token + strlen(token) - 1) = '\0';
+
+                if (labels->label_count == labels->capacity)
+                {
+                    ReallocLabelArray(labels);
+                }
+                labels->array[labels->label_count].label_name = token;
+                labels->array[labels->label_count].ip = token_number;
+
+                ++labels->label_count;
+            }
+            else
+            {
+                token_number++;
+            }
+
+            token = strtok(NULL, delim);
+        }
     }
 
     return token_number;
+}
+
+static const size_t kMaxLabelCount = 20;
+
+CompileErr_t InitLabelArray(LabelArray *labels)
+{
+    labels->capacity = kMaxLabelCount;
+    labels->array = (Label *) calloc(labels->capacity, sizeof(Label));
+
+    if (labels->array == nullptr)
+    {
+        perror("InitLabelArray() failed to allocate memory");
+
+        return kAllocError;
+    }
+
+    labels->label_count = 0;
+
+    return kSuccess;
+}
+
+CompileErr_t ReallocLabelArray(LabelArray *labels)
+{
+    labels->capacity *= 2;
+
+    labels->array = (Label *) realloc(labels->array, labels->capacity);
+
+    if (labels->array = nullptr)
+    {
+        perror("ReallocLabelArray() failed to reallocate memory");
+
+        return kReallocError;
+    }
+}
+
+CompileErr_t LabelArrayDtor(LabelArray *labels)
+{
+    free(labels->array);
+
+    return kSuccess;
 }
 
 int GetLabelIp(char *token, LabelArray *labels)
@@ -479,6 +629,8 @@ int GetLabelIp(char *token, LabelArray *labels)
     return -1;
 }
 
+
+
 CompileErr_t WriteInTxt(const char *file_name, Code *codes)
 {
     FILE *output_file = fopen(file_name, "w");
@@ -490,38 +642,40 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         return kOpenError;
     }
 
-    fprintf(output_file, "\t\t\t\t\t\tSPU listing by Icebergold\n");
+    fprintf(output_file, "\t\t\t\t\t\t\tSPU listing by SANEKDASH\n");
     fprintf(output_file, "+------------+------------+------------+------------+------------+------------+------------+\n"
                          "|  op name   |   opcode   | hex opcode |reg argument|  reg code  |num argument|hex argument|\n"
                          "+------------+------------+------------+------------+------------+------------+------------+\n");
     for (size_t i = 0; i < codes->size; i++)
     {
-        StackType_t code = codes->codes_array[i];
+        StackElemType_t code = codes->codes_array[i];
 
-        fprintf(output_file, "|%-12s|%-12d|0x%-10X|",
+        fprintf(output_file, "|%-6s(%4d)|%-12d|0x%-10X|",
                                  CommandArray[GET_OPCODE(codes->codes_array[i])].command_name,
+                                 i,
                                  codes->codes_array[i],
                                  codes->codes_array[i]);
         if (GET_REG_BIT(code))
         {
             ++i;
-            fprintf(output_file, "%-12s|%-12d|", RegisterArray[codes->codes_array[i]].reg_name, codes->codes_array[i]);
+            fprintf(output_file, "%-6s(%4d)|%-12d|", RegisterArray[codes->codes_array[i]].reg_name,i, codes->codes_array[i]);
         }
         else
         {
-            fprintf(output_file, "------------|------------|");
+            fprintf(output_file, "    ----    |    ----    |");
         }
 
         if (GET_NUM_BIT(code))
         {
             ++i;
-            fprintf(output_file, "%-12d|0x%-8X  |\n",
+            fprintf(output_file, "%-6d(%4d)|0x%-8X  |\n",
                                  codes->codes_array[i],
+                                 i,
                                  codes->codes_array[i]);
         }
         else
         {
-            fprintf(output_file, "------------|------------|\n");
+            fprintf(output_file, "    ----    |    ----    |\n");
         }
 
         fprintf(output_file, "+------------+------------+------------+------------+------------+------------+------------+\n");
@@ -536,6 +690,8 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
 
     return kSuccess;
 }
+
+
 
 CompileErr_t WriteInBin(const char *file_name, Code *codes)
 {

@@ -8,24 +8,21 @@
 
 int main()
 {
+
     INIT_LOG;//()
 
     CPU cpu = {};
-
-    Text byte_code = {};
+    CpuInit(&cpu);
 
     Code codes = {};
 
     StackInit(&cpu.stack);
 
-    ReadTextFromFile(&byte_code, "output.txt");
-
     ReadCode(&codes, "output.bin");
 
     ExecuteCommands(&cpu, &codes);
 
-    StackDtor(&cpu.stack);
-    TextDtor(&byte_code);
+    CpuDtor(&cpu);
 
     CLOSE_LOG;
 

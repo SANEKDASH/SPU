@@ -1,0 +1,131 @@
+        call input
+
+    push 0
+    push rax
+
+        call discriminant
+
+    push 0
+    push rdx
+
+        ja salve
+        je single
+        jb zero_roots
+
+    push 0
+    out
+    end:    ; end of program
+
+hlt ;the end
+
+
+
+
+input:
+    in
+    pop rax
+
+    in
+    pop rbx
+
+    in
+    pop rcx
+ret
+
+zero_roots:
+push 0
+out
+
+hlt
+ret
+
+
+discriminant:
+    push rbx
+    push rbx
+    mult
+
+    push 4
+    push rax
+    mult
+    push rcx
+    mult
+
+    sub
+
+    pop rdx
+
+ret
+
+first_root:
+    push -1
+    push rbx
+    mult
+    push rdx
+    sqrt
+
+    sub
+
+    push 2
+    push rax
+    mult
+
+    div
+    out
+
+ret
+
+second_root:
+    push -1
+    push rbx
+    mult
+    push rdx
+    sqrt
+
+    add
+
+    push 2
+    push rax
+    mult
+
+    div
+    out
+
+ret
+
+single:
+    push 1
+    out
+
+    push -1
+    push rbx
+    mult
+
+    push 2
+    push rax
+    mult
+
+    div
+
+    out
+
+    hlt
+
+ret
+
+salve:
+    push 2
+    out
+    call first_root
+    hlt
+    call second_root
+    out
+
+hlt
+
+ret
+
+
+
+
+

@@ -26,19 +26,19 @@ static const int kBaseStackSize = 8;
 
 static const int kMultiplier = 2;
 
-static const StackType_t kPoisonVal  = 0xBADBABA;
-static const StackType_t kDestrVal   = 0xDEAD;
-static const StackType_t *kDestrPtr  = (StackType_t*)0xDEADBEEF;
+static const StackElemType_t kPoisonVal  = 0xBADBABA;
+static const StackElemType_t kDestrVal   = 0xDEAD;
+static const StackElemType_t *kDestrPtr  = (StackElemType_t*)0xDEADBEEF;
 
 CANARY_ON(static const CanaryType_t kCanaryVal = 0xDEADB14D;)
 
-static void PoisonMem(Stack *stk, StackType_t poison_value);
+static void PoisonMem(Stack *stk, StackElemType_t poison_value);
 
 static StackErr_t ChangeStackCapacity(Stack *stk, size_t multiplier, char mode);
 
 static void HashStack(Stack *stk);
 
-static unsigned long long HashFunc(const void *data, int count);
+static unsigned long long HashFunc(const void *data, size_t count);
 
 CANARY_ON(
           static CanaryType_t *GetLeftDataCanaryPtr(const Stack *stk)
@@ -52,7 +52,7 @@ CANARY_ON(
           {
               CHECK(stk);
 
-              return (CanaryType_t *)((char *)stk->stack_data.data + stk->stack_data.capacity * sizeof(StackType_t));
+              return (CanaryType_t *)((char *)stk->stack_data.data + stk->stack_data.capacity * sizeof(StackElemType_t));
           }
          )
 
@@ -104,7 +104,7 @@ StackErr_t StackVerify(Stack *stk)
     HASH_ON(
             if (stk->stack_data.data != nullptr && stk->stack_data.capacity > 0)
             {
-                if (HashFunc(stk->stack_data.data, sizeof(StackType_t) * stk->stack_data.capacity) != stk->hash.data_hash)
+                if (HashFunc(stk->stack_data.data, sizeof(StackElemType_t) * stk->stack_data.capacity) != stk->hash.data_hash)
                 {
                 stk->stack_data.status |= kDataHashError;
                 }
@@ -152,14 +152,14 @@ StackErr_t StackInit(Stack *stk)
     stk->stack_data.size = 0;
     stk->stack_data.status = kStackClear;
 
-    size_t size = kBaseStackSize * sizeof(StackType_t);
+    size_t size = kBaseStackSize * sizeof(StackElemType_t);
 
     CANARY_ON(
               stk->left_canary = stk->right_canary = kCanaryVal;
               size += 2 * sizeof(CanaryType_t);
              )
 
-    stk->stack_data.data = (StackType_t *) calloc(size, sizeof(char));
+    stk->stack_data.data = (StackElemType_t *) calloc(size, sizeof(char));
 
     int errcode = errno;
 
@@ -171,7 +171,7 @@ StackErr_t StackInit(Stack *stk)
     }
 
     CANARY_ON(
-              stk->stack_data.data = (StackType_t *)((char *)stk->stack_data.data + sizeof(CanaryType_t));
+              stk->stack_data.data = (StackElemType_t *)((char *)stk->stack_data.data + sizeof(CanaryType_t));
 
               *GetLeftDataCanaryPtr(stk)  = kCanaryVal;
               *GetRightDataCanaryPtr(stk) = kCanaryVal;
@@ -204,7 +204,7 @@ StackErr_t StackDtor(Stack *stk)
 
     if (stk->stack_data.data != nullptr)
     {
-        CANARY_ON(stk->stack_data.data = (StackType_t *)((char *)stk->stack_data.data - sizeof(CanaryType_t));)
+        CANARY_ON(stk->stack_data.data = (StackElemType_t *)((char *)stk->stack_data.data - sizeof(CanaryType_t));)
 
         free(stk->stack_data.data);
     }
@@ -218,7 +218,7 @@ StackErr_t StackDtor(Stack *stk)
 
 static const char kExpand = 'e';
 
-StackErr_t Push(Stack *stk, StackType_t in_value)
+StackErr_t Push(Stack *stk, StackElemType_t in_value)
 {
     CHECKSTACK(stk);
 
@@ -246,7 +246,7 @@ StackErr_t Push(Stack *stk, StackType_t in_value)
 
 static const char kDivide = 'd';
 
-StackErr_t Pop(Stack *stk, StackType_t *ret_value)
+StackErr_t Pop(Stack *stk, StackElemType_t *ret_value)
 {
     CHECKSTACK(stk);
 
@@ -348,7 +348,7 @@ int GetBit(int num, size_t pos)
     return num & (1 << pos);
 }
 
-static void PoisonMem(Stack *stk, StackType_t poison_value)
+static void PoisonMem(Stack *stk, StackElemType_t poison_value)
 {
     CHECKSTACK(stk);
 
@@ -381,12 +381,12 @@ static StackErr_t ChangeStackCapacity(Stack *stk, size_t multiplier, char mode)
             return kWrongSize;
         }
 
-        size_t size = stk->stack_data.capacity * sizeof(StackType_t) CANARY_ON(+ 2 * sizeof(CanaryType_t));
+        size_t size = stk->stack_data.capacity * sizeof(StackElemType_t) CANARY_ON(+ 2 * sizeof(CanaryType_t));
 
 
-        CANARY_ON(stk->stack_data.data = (StackType_t *)((char *)stk->stack_data.data - sizeof(CanaryType_t));)
+        CANARY_ON(stk->stack_data.data = (StackElemType_t *)((char *)stk->stack_data.data - sizeof(CanaryType_t));)
 
-        StackType_t *check_ptr = (StackType_t *)realloc(stk->stack_data.data, size);
+        StackElemType_t *check_ptr = (StackElemType_t *)realloc(stk->stack_data.data, size);
 
         if (check_ptr != nullptr)
         {
@@ -400,7 +400,7 @@ static StackErr_t ChangeStackCapacity(Stack *stk, size_t multiplier, char mode)
         }
 
         CANARY_ON(
-                  stk->stack_data.data = (StackType_t *)((char *)stk->stack_data.data + sizeof(CanaryType_t));
+                  stk->stack_data.data = (StackElemType_t *)((char *)stk->stack_data.data + sizeof(CanaryType_t));
 
                   *GetRightDataCanaryPtr(stk) = kCanaryVal;
                   *GetLeftDataCanaryPtr(stk)  = kCanaryVal;
@@ -414,7 +414,7 @@ static StackErr_t ChangeStackCapacity(Stack *stk, size_t multiplier, char mode)
     return stk->stack_data.status;
 }
 
-static unsigned long long HashFunc(const void *data, int count)
+static unsigned long long HashFunc(const void *data, size_t count)
 {
     CHECK(data);
     unsigned long long hash_sum = 0;
@@ -482,7 +482,7 @@ static void HashStack(Stack *stk)
 
     if (stk->stack_data.status == kStackClear)
     {
-        stk->hash.data_hash   = HashFunc(stk->stack_data.data, stk->stack_data.capacity * sizeof(StackType_t));
+        stk->hash.data_hash   = HashFunc(stk->stack_data.data, stk->stack_data.capacity * sizeof(StackElemType_t));
 
         stk->hash.struct_hash = HashFunc((char *)stk CANARY_ON(+ sizeof(CanaryType_t)), sizeof(StackData));
     }

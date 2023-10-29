@@ -37,7 +37,7 @@ struct LogInfo
 #endif
 
 typedef unsigned StackErr_t;
-typedef int StackType_t;
+typedef int StackElemType_t;
 typedef unsigned long long CanaryType_t;
 
 #ifdef HASH_PROTECTION
@@ -52,9 +52,9 @@ struct HashVals
 
 struct StackData
 {
-    StackType_t *data;
+    StackElemType_t *data;
     int size;
-    int capacity;
+    size_t capacity;
     unsigned int status;
 };
 
@@ -127,9 +127,9 @@ StackErr_t StackInit(Stack *stk);
 
 StackErr_t StackDtor(Stack *stk);
 
-StackErr_t Push(Stack *stk, StackType_t in_value);
+StackErr_t Push(Stack *stk, StackElemType_t in_value);
 
-StackErr_t Pop(Stack *stk, StackType_t *ret_value);
+StackErr_t Pop(Stack *stk, StackElemType_t *ret_value);
 
 void StackDump(const Stack *stk, LogInfo info);
 
@@ -139,11 +139,9 @@ CanaryType_t *GetLeftDataCanaryPtr(const Stack *stk);
 
 int GetBit(int num, size_t pos);
 
-
-#ifdef DEBUG
 int InitLog();
+
 int CloseLog();
-#endif
 
 #ifdef HASH_PROTECTION
 static void HashStack(Stack *stk);

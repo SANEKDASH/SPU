@@ -19,12 +19,12 @@ struct LogInfo
 };
 # 39 "stack.h"
 typedef unsigned StackErr_t;
-typedef int StackType_t;
+typedef int StackElemType_t;
 typedef unsigned long long CanaryType_t;
 # 53 "stack.h"
 struct StackData
 {
-    StackType_t *data;
+    StackElemType_t *data;
     int size;
     int capacity;
     unsigned int status;
@@ -92,9 +92,9 @@ StackErr_t StackInit(Stack *stk);
 
 StackErr_t StackDtor(Stack *stk);
 
-StackErr_t Push(Stack *stk, StackType_t in_value);
+StackErr_t Push(Stack *stk, StackElemType_t in_value);
 
-StackErr_t Pop(Stack *stk, StackType_t *ret_value);
+StackErr_t Pop(Stack *stk, StackElemType_t *ret_value);
 
 void StackDump(const Stack *stk, LogInfo info);
 
@@ -223,7 +223,7 @@ static const size_t kRegCount = 4;
 struct CPU
 {
     Stack stack;
-    StackType_t reg_array[kRegCount];
+    StackElemType_t reg_array[kRegCount];
 };
 
 struct Command
@@ -234,7 +234,7 @@ struct Command
 
 struct Code
 {
-    StackType_t *codes_array = nullptr;
+    StackElemType_t *codes_array = nullptr;
     size_t capacity = 0;
 };
 

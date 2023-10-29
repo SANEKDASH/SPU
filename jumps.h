@@ -1,7 +1,0 @@
-DEF_CMD(kJmp , 15, "jmp:" , true, true)
-DEF_CMD(kJa  , 16, "ja:"  , true, l_arg >= r_arg)
-DEF_CMD(kJae , 17, "jae:" , true, l_arg >= r_arg)
-DEF_CMD(kJb  , 18, "jb:"  , true, l_arg <  r_arg)
-DEF_CMD(kJbe , 19, "jbe:" , true, l_arg <= r_arg)
-DEF_CMD(kJe  , 20, "je:"  , true, l_arg == r_arg)
-DEF_CMD(kJne , 21, "jne:" , true, l_arg != r_arg)

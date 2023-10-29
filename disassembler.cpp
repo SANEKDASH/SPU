@@ -7,7 +7,7 @@
 #include "assembler.h"
 #include "disassembler.h"
 
-CompileErr_t DisassembleText(Text* text, const char *file_name)
+CompileErr_t DisassembleText(Text *text, const char *file_name)
 {
     FILE *output_file = fopen(file_name, "w");
 
@@ -20,10 +20,12 @@ CompileErr_t DisassembleText(Text* text, const char *file_name)
 
     for (size_t i = 0; i < text->lines_count; ++i)
     {
-        DecodeLine(output_file, text->lines_ptr[i]);
+        DecodeLine(output_file, text->lines_ptr[i]); // ????
     }
 
     fclose(output_file);
+
+    return kSuccess;
 }
 
 CompileErr_t ReadCode(Code *codes, const char *file_name)
@@ -36,10 +38,24 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
         return kOpenError;
     }
 
-    codes->capacity = codes->size = GetFileSize(input_file) / sizeof(StackType_t);
+    codes->capacity = codes->size = GetFileSize(input_file) / sizeof(StackElemType_t);
 
-    codes->codes_array = (StackType_t *) calloc(codes->capacity, sizeof(StackType_t));
-    fread(codes->codes_array, sizeof(StackType_t), codes->capacity, input_file);
+    codes->codes_array = (StackElemType_t *) calloc(codes->capacity, sizeof(StackElemType_t));
+    if (codes->codes_array == nullptr)
+    {
+        perror("ReadCode() failed to allocate memory");
+
+        return kAllocError;
+    }
+
+    size_t ret_code = fread(codes->codes_array, sizeof(StackElemType_t), codes->capacity, input_file);
+    if (ret_code != codes->capacity)
+    {
+        perror("ReadCode() failed to read");
+
+        return kReadingError;
+    }
+    // ???
 
     if (fclose(input_file) == EOF)
     {
@@ -48,14 +64,25 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
         return kCloseError;
     }
 
+    return kSuccess;
 }
 
 CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_file_name)
 {
     Code codes = {};
 
-    ReadCode(&codes, input_file_name);
+    if (ReadCode(&codes, input_file_name) != kSuccess)
+    {
+        return kDisasmError;
+    }
     FILE *output_file = fopen(output_file_name, "w");
+
+    if (output_file == nullptr)
+    {
+        perror("DisassembleBinFile() failed to open file");
+
+        return kOpenError;
+    }
 
     for (size_t i = 0; i < codes.capacity; ++i)
     {
@@ -82,4 +109,6 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
     free(codes.codes_array);
 
     fclose(output_file);//check
+
+    return kSuccess;
 }
