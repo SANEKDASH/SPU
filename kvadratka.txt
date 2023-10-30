@@ -1,23 +1,19 @@
         call input
 
-    push 0
-    push rax
-
         call discriminant
 
-    push 0
+    push rax ; d != 0
     push rdx
+        jae salve
 
-        ja salve
-        je single
-        jb zero_roots
+    push a
+    push 0
+        je linear
 
     push 0
     out
-    end:    ; end of program
 
 hlt ;the end
-
 
 
 
@@ -32,12 +28,28 @@ input:
     pop rcx
 ret
 
-zero_roots:
-push 0
-out
 
-hlt
+
+b_zero:
+    push 0
+    push rcx
+        je inf_roots
+    push 0
+    out
+
+    hlt
 ret
+
+
+
+inf_roots:
+    push 3
+    out
+
+    hlt
+
+ret
+
 
 
 discriminant:
@@ -69,9 +81,9 @@ first_root:
     push 2
     push rax
     mult
-
     div
-    out
+
+    pop [1]
 
 ret
 
@@ -89,36 +101,61 @@ second_root:
     mult
 
     div
-    out
 
+    pop [2]
 ret
 
-single:
-    push 1
-    out
+
+
+linear:
+    push 0
+    push rbx
+        je b_zero
+
 
     push -1
-    push rbx
+    push rcx
     mult
 
-    push 2
-    push rax
-    mult
+    push rbx
 
     div
 
+    push 1
     out
-
-    hlt
+    out
+hlt
 
 ret
 
+
+
 salve:
+    push 0
+    push rax
+        je linear
+
+        call first_root
+        call second_root
+
+    push [1]
+    push [2]
+
+        jne two_roots
+    push 1
+    out
+
+    out
+hlt
+
+ret
+
+
+
+two_roots:
     push 2
     out
-    call first_root
-    hlt
-    call second_root
+    out
     out
 
 hlt

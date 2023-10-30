@@ -11,6 +11,22 @@
 #include "disassembler.h"
 #include "color_print.h"
 
+FILE *dump_file = nullptr;
+
+static void InitCpuDump()
+{
+    FILE *dump_file = fopen("cpu_dump.txt", "w");
+}
+
+
+
+static void CloseCpuDump()
+{
+    fclose(dump_file);
+}
+
+
+
 CompileErr_t CpuInit(CPU *cpu)
 {
     StackInit(&cpu->stack);
@@ -24,8 +40,12 @@ CompileErr_t CpuInit(CPU *cpu)
         return kAllocError;
     }
 
+    cpu->ip = 0;
+
     return kSuccess;
 }
+
+
 
 CompileErr_t CpuDtor(CPU *cpu)
 {
@@ -38,6 +58,8 @@ CompileErr_t CpuDtor(CPU *cpu)
 }
 
 static const StackElemType_t kPrecision = 1000;
+
+
 
 CommandCode_t SeekByteCommand(const int code)
 {
@@ -52,16 +74,22 @@ CommandCode_t SeekByteCommand(const int code)
     return kNotACommand;
 }
 
+
+
 CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
 {
 #define PUSH(expr) Push(&cpu->stack, expr)
 #define POP(arg)   Pop(&cpu->stack, arg)
-
     Stack call_stack = {};
+
+    InitCpuDump();
     StackInit(&call_stack);
-    for (size_t i = 0; i < codes->capacity;)
+
+    for (; cpu->ip < codes->capacity;)
     {
-        char code = codes->codes_array[i++];
+        CpuDump(cpu, codes);
+
+        StackElemType_t code = codes->codes_array[cpu->ip++];
 
         switch (GET_OPCODE(code))
         {
@@ -84,10 +112,10 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
                                                                  \
                 POP(&l_arg);                                     \
                 POP(&r_arg);                                     \
-                size_t pos = codes->codes_array[i++];            \
+                size_t pos = codes->codes_array[cpu->ip++];      \
                 if (expr)                                        \
                 {                                                \
-                    i = pos;                                     \
+                    cpu->ip = pos;                               \
                 }                                                \
                                                                  \
                 PUSH(r_arg);                                     \
@@ -112,7 +140,19 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
     }
 
     StackDtor(&call_stack);
+    CloseCpuDump();
 
     return kSuccess;
 
+}
+
+
+
+CompileErr_t CpuDump(CPU *cpu, Code *codes)
+{
+    fprintf(dump_file, "\t\t\tCPU DUMP:\n\n");
+
+    fprintf(dump_file, "\tip = %d\n", cpu->ip);
+
+    fprintf(dump_file, "\nexecuting command: %s\n", CommandArray[codes->codes_array[cpu->ip]].command_name);
 }

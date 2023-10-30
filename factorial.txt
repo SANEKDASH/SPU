@@ -1,0 +1,38 @@
+    in
+    pop rax
+
+    push 1
+    pop rbx
+
+    push 1
+    pop rcx
+
+        fuck:
+
+        call factorial
+
+        push rax
+        push rbx
+
+        jbe fuck
+
+    push rcx
+    out
+
+hlt
+
+factorial:
+
+    push rcx
+    push rbx
+
+    mult
+    pop rcx
+
+
+    push 1
+    push rbx
+    add
+    pop rbx
+
+ret

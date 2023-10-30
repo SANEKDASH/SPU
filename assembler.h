@@ -17,7 +17,7 @@
 size_t GetFileSize(FILE *ptr_file);
 
 CompileErr_t ReadTextFromFile(Text *text,
-                             const char *file_name);
+                              const char *file_name);
 
 size_t SplitBufIntoWords(char *buf);
 
@@ -47,9 +47,9 @@ CompileErr_t CompileText(Text *text,
                          const char *file_name);
 
 CompileErr_t WriteInBin(const char *file_name,
-                       Code *codes);
+                        Code *codes);
 
-char EncodeText(Text *text,
+CompileErr_t EncodeText(Text *text,
                 LabelArray *labels,
                 Code *codes);
 
@@ -59,7 +59,9 @@ int GetLabelIp(char *token,
 char DecodeLine(FILE *output_file,
                 char *line);
 
-void GetCommandAndArgsFromStr(char *line, char **command, char **args);
+void GetCommandAndArgsFromStr(char *line,
+                              char **command,
+                              char **args);
 
 CompileErr_t GetArgument(char *token,
                          StackElemType_t *op_code,
@@ -77,6 +79,9 @@ CompileErr_t ParseLine(char *line,
 
 size_t GetTokenNumber(Text *text_copy,
                       LabelArray *labels);
+
+CompileErr_t WriteListing(const char *file_name,
+                          Code *codes);
 
 CompileErr_t WriteInTxt(const char *file_name,
                         Code *codes);

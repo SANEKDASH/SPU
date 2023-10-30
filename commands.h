@@ -27,6 +27,7 @@ typedef enum
     kDisasmError    = 10,
     kReadingError   = 11,
     kReallocError   = 12,
+    kIncorrectInput = 13,
 } CompileErr_t;
 
 typedef enum
@@ -51,7 +52,6 @@ struct Text
 {
     char **lines_ptr;
     size_t lines_count;
-    char *dirty_buf;
     char *buf;
     size_t buf_size;
 };
@@ -62,8 +62,9 @@ static const size_t kMaxRamSize = 400;
 struct CPU
 {
     Stack stack;
-    StackElemType_t reg_array[kRegCount];
+    StackElemType_t reg_array[kRegCount] = {0};
     StackElemType_t *RAM = nullptr;
+    size_t ip;
 };
 
 struct Command

@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
 
     ReadTextFromFile(&code_copy, argv[1]);
     ReadTextFromFile(&highlevel_code, argv[1]);
-
     CompileText(&highlevel_code, &code_copy, "output.txt");
 
     TextDtor(&highlevel_code);

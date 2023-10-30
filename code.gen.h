@@ -5,11 +5,11 @@ DEF_CMD(kPush,  0, "push", true,
 //if there are two arguments, first must be register, the last - number
     if (GET_REG_BIT(code))
     {
-        reg_arg = codes->codes_array[i++];
+        reg_arg = codes->codes_array[cpu->ip++];
     }
     if (GET_NUM_BIT(code))
     {
-        num_arg = codes->codes_array[i++];
+        num_arg = codes->codes_array[cpu->ip++];
     }
 
     if (GET_RAM_BIT(code))
@@ -20,7 +20,6 @@ DEF_CMD(kPush,  0, "push", true,
         }
         else if (GET_NUM_BIT(code))
         {
-            printf("RAM[%d] = %d\n",num_arg, cpu->RAM[num_arg]);
             PUSH(cpu->RAM[num_arg]);
         }
         else if (GET_REG_BIT(code))
@@ -120,11 +119,11 @@ DEF_CMD(kPop , 9, "pop", true,
 
     if (GET_REG_BIT(code))
     {
-        reg_arg = codes->codes_array[i++];
+        reg_arg = codes->codes_array[cpu->ip++];
     }
     if (GET_NUM_BIT(code))
     {
-        num_arg = codes->codes_array[i++];
+        num_arg = codes->codes_array[cpu->ip++];
     }
 
     if (GET_RAM_BIT(code))
@@ -161,17 +160,15 @@ DEF_CMD(kHlt , 11, "hlt", false,
     return kSuccess;
 )
 DEF_CMD(kCall, 12, "call", true,
-    Push(&call_stack, i + 1);
+    Push(&call_stack, cpu->ip + 1);
 
-    StackElemType_t pos = codes->codes_array[i];
-    printf("pos = %d\n", pos);
-    i = pos;
+    StackElemType_t pos = codes->codes_array[cpu->ip];
+    cpu->ip = pos;
 )
 DEF_CMD(kRet , 13, "ret", false,
     StackElemType_t pos = 0;
     Pop(&call_stack, &pos);
-    printf("ret on -> %d\n", pos);
-    i = pos;
+    cpu->ip = pos;
 )
 
 DEF_CMD(kDraw, 14, "draw", false,

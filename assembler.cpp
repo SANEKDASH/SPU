@@ -22,10 +22,6 @@ void TextDtor(Text *text)
     free(text->lines_ptr);
     text->lines_ptr = nullptr;
 
-    free(text->dirty_buf);
-    text->dirty_buf = nullptr;
-
-
     text->lines_count = 0;
 }
 
@@ -56,7 +52,6 @@ CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
     }
     text->buf_size = GetFileSize(input_file) + 1;
     text->buf       = (char *) calloc(text->buf_size, sizeof(char));
-    text->dirty_buf = (char *) calloc(text->buf_size, sizeof(char));
 
     if (!text->buf)
     {
@@ -65,15 +60,13 @@ CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
         return kAllocError;
     }
 
-    if (!text->dirty_buf)
+    size_t check_read = fread(text->buf, sizeof(char), text->buf_size - 1, input_file);
+    if (check_read != (text->buf_size - 1))
     {
-        perror("\n>>ReadTextFromFile() failed to allocate memory for dirty_buf");
+        perror("\n>>ReadTextFromFile() failed to read from file");
 
-        return kAllocError;
+        return kReadingError;
     }
-
-    long long check_read = fread(text->buf, sizeof(char), text->buf_size - 1, input_file);
-    strcpy(text->dirty_buf, text->buf);
 
     text->lines_count = SplitBufIntoWords(text->buf);
 
@@ -203,6 +196,8 @@ ArgCode_t SeekRegister(const char *token)
     return kEmmNum;
 }
 
+
+
 static bool IsJmpOpCode(StackElemType_t op_code)
 {
     return op_code == kCall ||
@@ -216,42 +211,70 @@ static bool IsJmpOpCode(StackElemType_t op_code)
 }
 
 static CompileErr_t ParseSquareBrakets(char *line,
+                                       char **num_str,
+                                       char **reg_str,
                                        StackElemType_t *num_arg,
                                        StackElemType_t *reg_arg,
                                        StackElemType_t *op_code,
                                        size_t line_number)
 {
-    char *reg = nullptr;
-    char *num = nullptr;
 
-    reg = ++line;
+    *reg_str = ++line;
 
-    while (*line != '+')
+    while (*line != '+' && *line != ']' && *line != '\0')
     {
-        if (*line == ']')
+        ++line;
+    }
+
+    switch (*line)
+    {
+        case '+':
         {
-            *line == '\0';
+            *(line++) = '\0';
 
-            *reg_arg = SeekRegister(reg);
+            *num_str = line;
+    printf("num - %s\n", *num_str);
 
-            if (*reg_arg != kEmmNum)
+            break;
+        }
+        case ']':
+        {
+
+            *line = '\0';
+            if (SeekRegister(*reg_str) != kEmmNum)
             {
+                *reg_arg = SeekRegister(*reg_str);
+
                 SET_REG_BIT(*op_code);
             }
             else
             {
-                *num_arg = atoi(reg);
+                *num_str = *reg_str;
+                *reg_str = nullptr;
+                *num_arg = atoi(*num_str);
 
                 SET_NUM_BIT(*op_code);
             }
 
             return kSuccess;
-        }
-        ++line;
-    }
 
-    *(line++) = '\0';
-    num = line;
+            break;
+        }
+
+        case '\0':
+        {
+            printf(">>Unclosed brakets! LINE: %d.\n", line_number);
+
+            return kUnclosedBraket;
+        }
+
+        default:
+        {
+            printf("kavo?\n");
+
+            break;
+        }
+    }
 
     while (*line != ']')
     {
@@ -264,7 +287,6 @@ static CompileErr_t ParseSquareBrakets(char *line,
         ++line;
     }
     *line = '\0';
-
     return kSuccess;
 }
 
@@ -276,7 +298,6 @@ CompileErr_t GetArgument(char *token,
                          size_t line_number)
 {
     size_t code = 0;
-
     if (IsJmpOpCode(*op_code))
     {
         *num_arg = GetLabelIp(token, labels);
@@ -299,20 +320,37 @@ CompileErr_t GetArgument(char *token,
     {
         SET_RAM_BIT(*op_code);
 
-        ParseSquareBrakets(token, num_arg, reg_arg, op_code, line_number);
+        ParseSquareBrakets(token, &num, &reg, num_arg, reg_arg, op_code, line_number);
 
-        if (num_arg != nullptr)
+        if (reg != nullptr)
         {
-            *num_arg = atoi(num);
-            SET_NUM_BIT(*op_code);
-        }
+            if (*reg == '\0')
+            {
+                printf(">>Incorect input! LINE: %d.\n", line_number);
 
-        if (reg_arg != nullptr)
-        {
+                return kIncorrectInput;
+            }
+            CHECK(reg_arg);
             *reg_arg = SeekRegister(reg);
             SET_REG_BIT(*op_code);
+
+        }
+        if (num != nullptr)
+        {
+
+            if (*num == '\0')
+            {
+                printf(">>Incorect input! LINE: %d.\n", line_number);
+
+                return kIncorrectInput;
+            }
+            CHECK(num_arg);
+            *num_arg = atoi(num);
+            SET_NUM_BIT(*op_code);
+
         }
 
+        return kSuccess;
     }
     else if ((code = SeekRegister(token)) != kEmmNum)
     {
@@ -329,8 +367,6 @@ CompileErr_t GetArgument(char *token,
     return kSuccess;
 }
 
-
-
 static void SkipSpaces(char **line)
 {
     while ((**line == ' ' || **line == '\t') && **line != '\0')
@@ -342,7 +378,7 @@ static void SkipSpaces(char **line)
 void GetCommandAndArgsFromStr(char *line, char **command, char **args)
 {
     SkipSpaces(&line);
-//nado li proverka?
+
     if (*line != '\0')
     {
         *command = line;
@@ -372,6 +408,7 @@ CompileErr_t ParseLine(char *line,
                        size_t line_number)
 {
     char *comment = strchr(line, ';');
+
     if (comment != nullptr)
     {
         *comment = '\0';
@@ -380,9 +417,8 @@ CompileErr_t ParseLine(char *line,
     char *command = nullptr;
     char *args    = nullptr;
 
-    GetCommandAndArgsFromStr(line, &command, &args);
 
-    //char *token = strtok(line, " \n\r");
+    GetCommandAndArgsFromStr(line, &command, &args);
 
     size_t code = SeekCommand(command);
 
@@ -397,8 +433,6 @@ CompileErr_t ParseLine(char *line,
 
     if (CommandArray[code].have_arg)
     {
-        //token = strtok(NULL, " ");
-
         if (args)
         {
             GetArgument(args, op_code, num_arg, reg_arg, labels, line_number);
@@ -413,7 +447,7 @@ CompileErr_t ParseLine(char *line,
 
 
 
-char EncodeText(Text *text, LabelArray *labels, Code *codes)
+CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 {
     StackElemType_t  op_code = 0;
     StackElemType_t  num_arg = 0;
@@ -421,19 +455,31 @@ char EncodeText(Text *text, LabelArray *labels, Code *codes)
 
     for (size_t i = 0; i < text->lines_count; i++)
     {
+        char *comment = nullptr;
+        if ((comment = strchr(text->lines_ptr[i], ';')) != nullptr)
+        {
+            *comment = '\0';
+        }
+
         op_code = 0;
         num_arg = 0;
         reg_arg = 0;
 
-        if (ParseLine(text->lines_ptr[i],
-                      &op_code,
-                      &num_arg,
-                      &reg_arg,
-                      labels,
-                      i) == kFoundLabel)
+        CompileErr_t status = kSuccess;
+
+        if ((status = ParseLine(text->lines_ptr[i],
+                                &op_code,
+                                &num_arg,
+                                &reg_arg,
+                                labels,
+                                i)) == kFoundLabel)
         {
             continue;
-            //check compile errors
+        }
+
+        if (status != kSuccess)
+        {
+            return status;
         }
 
         codes->codes_array[codes->size++] = op_code;
@@ -448,7 +494,7 @@ char EncodeText(Text *text, LabelArray *labels, Code *codes)
         }
     }
 
-    return op_code;
+    return kSuccess;
 }
 
 
@@ -498,7 +544,6 @@ CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
     InitLabelArray(&labels);
 
     Code codes = {};
-    printf("a");
 
     codes.capacity = GetTokenNumber(text_copy, &labels);
     codes.codes_array = (StackElemType_t *) calloc(codes.capacity, sizeof(StackElemType_t));
@@ -509,12 +554,15 @@ CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
 
         return kAllocError;
     }
-
-    EncodeText(text, &labels, &codes);
+    if (EncodeText(text, &labels, &codes) != kSuccess)
+    {
+        printf(">>Compile error...\n");
+    }
 
     WriteInTxt(file_name, &codes);
 
     WriteInBin("output.bin", &codes);
+    WriteListing("listing.txt", &codes);
 
     LabelArrayDtor(&labels);
     CodeDtor(&codes);
@@ -601,12 +649,14 @@ CompileErr_t ReallocLabelArray(LabelArray *labels)
 
     labels->array = (Label *) realloc(labels->array, labels->capacity);
 
-    if (labels->array = nullptr)
+    if (labels->array == nullptr)
     {
         perror("ReallocLabelArray() failed to reallocate memory");
 
         return kReallocError;
     }
+
+    return kSuccess;
 }
 
 CompileErr_t LabelArrayDtor(LabelArray *labels)
@@ -651,14 +701,17 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         StackElemType_t code = codes->codes_array[i];
 
         fprintf(output_file, "|%-6s(%4d)|%-12d|0x%-10X|",
-                                 CommandArray[GET_OPCODE(codes->codes_array[i])].command_name,
-                                 i,
-                                 codes->codes_array[i],
-                                 codes->codes_array[i]);
+                CommandArray[GET_OPCODE(codes->codes_array[i])].command_name,
+                i,
+                codes->codes_array[i],
+                codes->codes_array[i]);
         if (GET_REG_BIT(code))
         {
             ++i;
-            fprintf(output_file, "%-6s(%4d)|%-12d|", RegisterArray[codes->codes_array[i]].reg_name,i, codes->codes_array[i]);
+            fprintf(output_file, "%-6s(%-4d)|%-12d|",
+                    RegisterArray[codes->codes_array[i]].reg_name,
+                    i,
+                    codes->codes_array[i]);
         }
         else
         {
@@ -668,10 +721,10 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         if (GET_NUM_BIT(code))
         {
             ++i;
-            fprintf(output_file, "%-6d(%4d)|0x%-8X  |\n",
-                                 codes->codes_array[i],
-                                 i,
-                                 codes->codes_array[i]);
+            fprintf(output_file, "%-6d(%-4d)|0x%-8X  |\n",
+                    codes->codes_array[i],
+                    i,
+                    codes->codes_array[i]);
         }
         else
         {
@@ -693,7 +746,8 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
 
 
 
-CompileErr_t WriteInBin(const char *file_name, Code *codes)
+CompileErr_t WriteInBin(const char *file_name,
+                        Code *codes)
 {
     FILE *output_file = fopen(file_name, "wb");
 
@@ -713,5 +767,89 @@ CompileErr_t WriteInBin(const char *file_name, Code *codes)
         return kCloseError;
     }
 
+    return kSuccess;
+}
+
+CompileErr_t WriteListing(const char *file_name,
+                          Code *codes)
+{
+    FILE *output_file = fopen(file_name, "w");
+
+    if (!output_file)
+    {
+        perror("\n>>WriteInTxt() failed to open output file\n");
+
+        return kOpenError;
+    }
+
+    for (size_t i = 0; i < codes->size;)
+    {
+        StackElemType_t op_code  = codes->codes_array[i++];
+        StackElemType_t num      = 0;
+        StackElemType_t reg_code = 0;
+
+        fprintf(output_file, "%08X ", op_code);
+
+        if (GET_REG_BIT(op_code))
+        {
+            reg_code = codes->codes_array[i++];
+            fprintf(output_file, "%08X ", reg_code);
+        }
+        if (GET_NUM_BIT(op_code))
+        {
+            num = codes->codes_array[i++];
+            fprintf(output_file, "%08X", num);
+        }
+
+        fprintf(output_file, "\t\t\t\t%s ",
+                CommandArray[GET_OPCODE(op_code)].command_name);
+
+        if (GET_RAM_BIT(op_code))
+        {
+            if (GET_NUM_BIT(op_code) && GET_REG_BIT(op_code))
+            {
+                fprintf(output_file, "[%s + %d]",
+                        RegisterArray[reg_code].reg_name,
+                        num);
+            }
+            else if (GET_REG_BIT(op_code))
+            {
+                fprintf(output_file, "[%s]",
+                        RegisterArray[reg_code].reg_name);
+            }
+            else if (GET_NUM_BIT(op_code))
+            {
+                fprintf(output_file, "[%d]",
+                        num);
+            }
+        }
+        else
+        {
+            if (GET_REG_BIT(op_code))
+            {
+                fprintf(output_file, "%s",
+                        RegisterArray[reg_code].reg_name);
+            }
+            else if (GET_NUM_BIT(op_code))
+            {
+                fprintf(output_file, "%d",
+                        num);
+            }
+        }
+
+        fprintf(output_file ,"\n\n");
+
+
+
+    }
+
+    if (fclose(output_file) == EOF)
+    {
+        perror("\n>>WriteInBin() error with closing output file");
+
+        return kCloseError;
+    }
+
+    return kSuccess;
 }
 
