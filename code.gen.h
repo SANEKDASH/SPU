@@ -1,52 +1,50 @@
+//if there are two arguments, first must be register, the last - number
+
 DEF_CMD(kPush,  0, "push", true,
 
-    StackElemType_t reg_arg = 0;
-    int num_arg = 0;
-//if there are two arguments, first must be register, the last - number
+    ArgType_t instr_arg = 0;
+    ArgType_t reg_arg   = 0;
+    ArgType_t num_arg   = 0;
+
     if (GET_REG_BIT(code))
     {
-        reg_arg = codes->codes_array[cpu->ip++];
+        reg_arg = cpu->reg_array[codes->codes_array[cpu->ip++]];
+
+        if (GET_RAM_BIT(code))
+        {
+            reg_arg /= kPrecision;
+        }
+
+        instr_arg += reg_arg;
     }
     if (GET_NUM_BIT(code))
     {
         num_arg = codes->codes_array[cpu->ip++];
+
+        if (GET_RAM_BIT(code))
+        {
+            instr_arg += num_arg;
+        }
+        else
+        {
+            instr_arg += num_arg * kPrecision;
+        }
     }
 
     if (GET_RAM_BIT(code))
     {
-        if (GET_REG_BIT(code) && GET_NUM_BIT(code))
-        {
-            PUSH(cpu->RAM[num_arg + cpu->reg_array[reg_arg]]);
-        }
-        else if (GET_NUM_BIT(code))
-        {
-            PUSH(cpu->RAM[num_arg]);
-        }
-        else if (GET_REG_BIT(code))
-        {
-            PUSH(cpu->RAM[cpu->reg_array[reg_arg]]);
-        }
+        printf("%d\n", instr_arg);
+        PUSH(cpu->RAM[instr_arg]);
     }
     else
     {
-        if (GET_REG_BIT(code) && GET_NUM_BIT(code))
-        {
-            PUSH(kPrecision * num_arg + cpu->reg_array[reg_arg]);
-        }
-        else if (GET_REG_BIT(code))
-        {
-            PUSH(cpu->reg_array[reg_arg]);
-        }
-        else if (GET_NUM_BIT(code))
-        {
-            PUSH(kPrecision * num_arg);
-        }
+        PUSH(instr_arg);
     }
 )
 
 DEF_CMD(kSub ,  1, "sub", false,
-    StackElemType_t lhs = 0;
-    StackElemType_t rhs = 0;
+    ArgType_t lhs = 0;
+    ArgType_t rhs = 0;
 
     POP(&rhs);
     POP(&lhs);
@@ -54,34 +52,37 @@ DEF_CMD(kSub ,  1, "sub", false,
 )
 
 DEF_CMD(kMult,  2, "mult", false,
-    StackElemType_t l_arg = 0;
-    StackElemType_t r_arg = 0;
+    ArgType_t l_arg = 0;
+    ArgType_t r_arg = 0;
 
     POP(&l_arg);
     POP(&r_arg);
 
-    PUSH((StackElemType_t)l_arg * r_arg / kPrecision);
+    ArgType_t res = (l_arg * r_arg) / 1000000;
+    res *= 1000;
+    PUSH(res);
 )
 
 DEF_CMD(kDiv ,  3, "div", false,
-    StackElemType_t l_arg = 0;
-    StackElemType_t r_arg = 0;
+    double l_arg = 0;
+    double r_arg = 0;
 
-    POP((StackElemType_t *) &r_arg);
-    POP((StackElemType_t *) &l_arg);
+    POP((ArgType_t *) &r_arg);
+    POP((ArgType_t *) &l_arg);
 
-    PUSH((l_arg / r_arg) * kPrecision);
+    double res = l_arg / r_arg * kPrecision;
+    PUSH((int)res);
 )
 
 DEF_CMD(kOut ,  4, "out", false,
-    StackElemType_t arg = 0;
+    ArgType_t arg = 0;
     POP(&arg);
 
     printf(">>%d\n", arg / kPrecision);
 )
 
 DEF_CMD(kIn  ,  5, "in", false,
-    StackElemType_t arg = 0;
+    ArgType_t arg = 0;
 
     scanf("%d", &arg);
 
@@ -89,57 +90,51 @@ DEF_CMD(kIn  ,  5, "in", false,
 )
 
 DEF_CMD(kSqrt,  6, "sqrt", false,
-    StackElemType_t arg = 0;
+    ArgType_t arg = 0;
 
-    POP((StackElemType_t *) &arg);
+    POP((ArgType_t *) &arg);
     arg =  arg * kPrecision;
     arg = sqrt(arg);
     PUSH(arg);
 )
 
 DEF_CMD(kSin ,  7, "sin", false,
-    double arg = 0;
+    ArgType_t arg = 0;
 
-    POP((StackElemType_t *) &arg);
+    POP(&arg);
 
-    PUSH(sin(arg / kPrecision) * kPrecision);
+    PUSH(sin((double)arg / kPrecision) * kPrecision);
 )
 
 DEF_CMD(kCos ,  8, "cos", false,
-    double arg = 0;
+    ArgType_t arg = 0;
 
-    POP((StackElemType_t *) &arg);
+    POP(&arg);
 
-    PUSH(cos(arg / kPrecision) * kPrecision);
+    PUSH(cos((double)arg / kPrecision) * kPrecision);
 )
 
 DEF_CMD(kPop , 9, "pop", true,
-    StackElemType_t num_arg = 0;
-    StackElemType_t reg_arg = 0;
+    ArgType_t ram_arg  = 0;
+    ArgType_t num_arg  = 0;
+    ArgType_t reg_arg  = 0;
 
     if (GET_REG_BIT(code))
     {
         reg_arg = codes->codes_array[cpu->ip++];
+
+        ram_arg += cpu->reg_array[reg_arg] / kPrecision;
     }
     if (GET_NUM_BIT(code))
     {
         num_arg = codes->codes_array[cpu->ip++];
+
+        ram_arg += num_arg;
     }
 
     if (GET_RAM_BIT(code))
     {
-        if (GET_REG_BIT(code) && GET_NUM_BIT(code))
-        {
-            POP(&cpu->RAM[cpu->reg_array[reg_arg] + num_arg]);
-        }
-        else if (GET_REG_BIT(code))
-        {
-            POP(&cpu->RAM[cpu->reg_array[reg_arg] / kPrecision]);
-        }
-        else if (GET_NUM_BIT(code))
-        {
-            POP(&cpu->RAM[num_arg]);
-        }
+        POP(&cpu->RAM[ram_arg]);
     }
     else
     {
@@ -147,8 +142,8 @@ DEF_CMD(kPop , 9, "pop", true,
     }
 )
 DEF_CMD(kAdd , 10, "add", false,
-    StackElemType_t lhs = 0;
-    StackElemType_t rhs = 0;
+    ArgType_t lhs = 0;
+    ArgType_t rhs = 0;
 
     POP(&rhs);
     POP(&lhs);
@@ -162,26 +157,26 @@ DEF_CMD(kHlt , 11, "hlt", false,
 DEF_CMD(kCall, 12, "call", true,
     Push(&call_stack, cpu->ip + 1);
 
-    StackElemType_t pos = codes->codes_array[cpu->ip];
+    ArgType_t pos = codes->codes_array[cpu->ip];
     cpu->ip = pos;
 )
 DEF_CMD(kRet , 13, "ret", false,
-    StackElemType_t pos = 0;
+    ArgType_t pos = 0;
     Pop(&call_stack, &pos);
     cpu->ip = pos;
 )
 
 DEF_CMD(kDraw, 14, "draw", false,
-    system("cls");
+    //system("cls");
     for (size_t i = 0; i < kMaxRamSize; i++)
     {
         if (cpu->RAM[i] / kPrecision == 0)
         {
-            ColorPrintf(kGreen, "[.]");
+            ColorPrintf(kGrey, "[.]");
         }
         else if (cpu->RAM[i] / kPrecision == 1)
         {
-            ColorPrintf(kRed, "[*]");
+            ColorPrintf(kWhite, "[*]");
         }
 
         if (((i + 1) % 20) == 0)
@@ -189,5 +184,5 @@ DEF_CMD(kDraw, 14, "draw", false,
             putchar('\n');
         }
     }
-    system("cls");
+    //system("cls");
 )

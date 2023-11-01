@@ -3,6 +3,8 @@
 
 #include "stack.h"
 
+typedef StackElemType_t ArgType_t;
+
 typedef enum
 {
     kRegA = 0,
@@ -10,6 +12,7 @@ typedef enum
     kRegC = 2,
     kRegD = 3,
     kEmmNum,
+    kNotAnArg,
 } ArgCode_t;
 
 typedef enum
@@ -56,8 +59,15 @@ struct Text
     size_t buf_size;
 };
 
-static const size_t kRegCount   = 4; // RegsCount etc...
+static const size_t kRegCount   = 4;
 static const size_t kMaxRamSize = 400;
+
+struct ArgsAndInst
+{
+    StackElemType_t  op_code;
+    StackElemType_t  num_arg;
+    StackElemType_t  reg_arg;
+};
 
 struct CPU
 {

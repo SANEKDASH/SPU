@@ -9,7 +9,7 @@
 #define DEBUG
 
 #ifdef DEBUG
-#define CHECKSTACK(stk) CHECK(stk);StackVerify(stk);STACKDUMP(stk)
+#define CHECKSTACK(stk) StackVerify(stk);STACKDUMP(stk);
 #define DEBUG_ON(...) __VA_ARGS__
 #else
 #define CHECKSTACK(stk)
@@ -443,7 +443,7 @@ int InitLog()
 
         if (LogFile == nullptr)
         {
-            printf("failed to init log (error: %s)\n", strerror(errcode));
+            perror("failed to init log");
 
             return errcode;
         }
@@ -461,7 +461,7 @@ int CloseLog()
     fclose(LogFile);
 
     int errcode = errno;
-
+    printf("%d\n", errno);
     if (errcode != 0)
     {
         printf("failed to close log (error: %s)\n", strerror(errcode));

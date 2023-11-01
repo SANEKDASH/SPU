@@ -11,6 +11,8 @@
 #include "disassembler.h"
 #include "color_print.h"
 
+#define DEBUG
+
 FILE *dump_file = nullptr;
 
 static void InitCpuDump()
@@ -78,11 +80,13 @@ CommandCode_t SeekByteCommand(const int code)
 
 CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
 {
-#define PUSH(expr) Push(&cpu->stack, expr)
-#define POP(arg)   Pop(&cpu->stack, arg)
+    INIT_LOG;
+
+    #define PUSH(expr) Push(&cpu->stack, expr)
+    #define POP(arg)   Pop(&cpu->stack, arg)
+
     Stack call_stack = {};
 
-    InitCpuDump();
     StackInit(&call_stack);
 
     for (; cpu->ip < codes->capacity;)
@@ -140,7 +144,7 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
     }
 
     StackDtor(&call_stack);
-    CloseCpuDump();
+    CLOSE_LOG;
 
     return kSuccess;
 

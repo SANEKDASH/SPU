@@ -7,19 +7,12 @@
     push 1
     pop rcx
 
-        fuck:
-
-        call factorial
-
-        push rax
-        push rbx
-
-        jbe fuck
+    call factorial
 
     push rcx
     out
 
-hlt
+    hlt
 
 factorial:
 
@@ -35,4 +28,13 @@ factorial:
     add
     pop rbx
 
-ret
+    push rax
+    push rbx
+
+    ja fuck
+
+    call factorial
+
+fuck:
+
+    ret

@@ -6,10 +6,22 @@
 #include "executor.h"
 #include "disassembler.h"
 
-int main()
+int main(int argc, char *argv[])
 {
+    INIT_LOG;
+    if (argc < 2)
+    {
+        printf(">>Processor.cpp: you should write a file you want to execute.\n");
+        return -1;
+    }
+    else if (argc > 2)
+    {
+        printf(">>Processor.cpp: too much arguments.\n");
 
-    INIT_LOG;//()
+        return -1;
+    }
+
+    const char *src_file = argv[1];
 
     CPU cpu = {};
     CpuInit(&cpu);
@@ -18,7 +30,7 @@ int main()
 
     StackInit(&cpu.stack);
 
-    ReadCode(&codes, "output.bin");
+    ReadCode(&codes, src_file);
 
     ExecuteCommands(&cpu, &codes);
 

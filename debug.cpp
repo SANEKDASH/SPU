@@ -4,10 +4,6 @@
 #include "debug.h"
 #include "color_print.h"
 
-static FILE *gLogFp;
-
-// g++ -DLOG_FILE="log.txt" ????
-
 void CheckIt(bool expr,
              int line,
              const char *func_name,

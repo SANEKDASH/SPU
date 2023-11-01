@@ -7,27 +7,6 @@
 #include "assembler.h"
 #include "disassembler.h"
 
-CompileErr_t DisassembleText(Text *text, const char *file_name)
-{
-    FILE *output_file = fopen(file_name, "w");
-
-    if (output_file == nullptr)
-    {
-        perror("DisambleText() failed");
-
-        return kOpenError;
-    }
-
-    for (size_t i = 0; i < text->lines_count; ++i)
-    {
-        DecodeLine(output_file, text->lines_ptr[i]); // ????
-    }
-
-    fclose(output_file);
-
-    return kSuccess;
-}
-
 CompileErr_t ReadCode(Code *codes, const char *file_name)
 {
     FILE *input_file = fopen(file_name, "rb");
@@ -86,23 +65,54 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
 
     for (size_t i = 0; i < codes.capacity; ++i)
     {
-        char op_code = GET_OPCODE(codes.codes_array[i]);
+        StackElemType_t op_code = codes.codes_array[i];
+        if (GET_NUM_BIT(op_code) && GET_REG_BIT(op_code))
+        {
+            StackElemType_t reg_arg = codes.codes_array[++i];
+            StackElemType_t num_arg = codes.codes_array[i];
+            if (GET_RAM_BIT(op_code))
+            {
+                fprintf(output_file, "%s [%s+%d]\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        RegisterArray[reg_arg].reg_name,
+                        num_arg);
+            }
+            else
+            {
+                fprintf(output_file, "%s %s+%d\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        RegisterArray[reg_arg].reg_name,
+                        num_arg);
+            }
 
-        if (GET_NUM_BIT(codes.codes_array[i]))//constants on bits positions
+        }
+        if (GET_NUM_BIT(op_code))
         {
             i++;
-
-            fprintf(output_file, "%s %d\n", CommandArray[op_code].command_name, codes.codes_array[i]);
+            if (GET_RAM_BIT(op_code))
+            {
+                fprintf(output_file, "%s [%d]\n", CommandArray[GET_OPCODE(op_code)].command_name, codes.codes_array[i]);
+            }
+            else
+            {
+                fprintf(output_file, "%s %d\n", CommandArray[GET_OPCODE(op_code)].command_name, codes.codes_array[i]);
+            }
         }
-        else if (GET_REG_BIT(codes.codes_array[i]))//constants on bits positions
+        else if (GET_REG_BIT(codes.codes_array[i]))
         {
             size_t reg_code = codes.codes_array[++i];
-
-            fprintf(output_file, "%s %s\n", CommandArray[op_code].command_name, RegisterArray[reg_code].reg_name);
+            if (GET_RAM_BIT(op_code))
+            {
+                fprintf(output_file, "%s [%s]\n", CommandArray[GET_OPCODE(op_code)].command_name, RegisterArray[reg_code].reg_name);
+            }
+            else
+            {
+                fprintf(output_file, "%s %s\n", CommandArray[GET_OPCODE(op_code)].command_name, RegisterArray[reg_code].reg_name);
+            }
         }
         else
         {
-            fprintf(output_file, "%s\n", CommandArray[op_code].command_name);
+            fprintf(output_file, "%s\n", CommandArray[GET_OPCODE(op_code)].command_name);
         }
     }
 

@@ -71,9 +71,7 @@ CompileErr_t GetArgument(char *token,
                          size_t line_number);
 
 CompileErr_t ParseLine(char *line,
-                       StackElemType_t *op_code,
-                       StackElemType_t *num_arg,
-                       StackElemType_t *reg_arg,
+                       ArgsAndInst *args,
                        LabelArray *labels,
                        size_t line_number);
 

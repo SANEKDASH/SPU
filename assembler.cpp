@@ -10,6 +10,22 @@
 #include "debug.h"
 #include "stack.h"
 
+static void SkipSpaces(char **line);
+
+static bool IsJmpOpCode(StackElemType_t op_code);
+
+static CompileErr_t ParseSquareBrakets(char *line,
+                                       char **num_str,
+                                       char **reg_str,
+                                       ArgsAndInst *args_and_instr,
+                                       size_t line_number);
+
+static CompileErr_t GetArgument(char *token,
+                                ArgsAndInst *args_and_instr,
+                                LabelArray *labels,
+                                size_t line_number);
+
+static void MissComment(char *line);
 
 
 void TextDtor(Text *text)
@@ -193,7 +209,16 @@ ArgCode_t SeekRegister(const char *token)
         }
     }
 
-    return kEmmNum;
+    char *num_end;
+    strtod(token, &num_end);
+    SkipSpaces(&num_end);
+
+    if (*num_end == '\0')
+    {
+        return kEmmNum;
+    }
+
+    return kNotAnArg;
 }
 
 
@@ -213,9 +238,7 @@ static bool IsJmpOpCode(StackElemType_t op_code)
 static CompileErr_t ParseSquareBrakets(char *line,
                                        char **num_str,
                                        char **reg_str,
-                                       StackElemType_t *num_arg,
-                                       StackElemType_t *reg_arg,
-                                       StackElemType_t *op_code,
+                                       ArgsAndInst *args_and_instr,
                                        size_t line_number)
 {
 
@@ -233,27 +256,35 @@ static CompileErr_t ParseSquareBrakets(char *line,
             *(line++) = '\0';
 
             *num_str = line;
-    printf("num - %s\n", *num_str);
 
             break;
         }
         case ']':
         {
-
             *line = '\0';
-            if (SeekRegister(*reg_str) != kEmmNum)
-            {
-                *reg_arg = SeekRegister(*reg_str);
 
-                SET_REG_BIT(*op_code);
+            ArgCode_t status = SeekRegister(*reg_str);
+
+            if (status != kEmmNum && status != kNotAnArg)
+            {
+                args_and_instr->reg_arg = (StackElemType_t) status;
+
+                SET_REG_BIT(args_and_instr->op_code);
             }
-            else
+            else if (status == kEmmNum)
             {
                 *num_str = *reg_str;
                 *reg_str = nullptr;
-                *num_arg = atoi(*num_str);
 
-                SET_NUM_BIT(*op_code);
+                args_and_instr->num_arg = atof(*num_str);
+
+                SET_NUM_BIT(args_and_instr->op_code);
+            }
+            else
+            {
+                printf(">>Incorrect arg! LINE: %d.\n", line_number);
+
+                return kIncorrectInput;
             }
 
             return kSuccess;
@@ -287,29 +318,29 @@ static CompileErr_t ParseSquareBrakets(char *line,
         ++line;
     }
     *line = '\0';
+
     return kSuccess;
 }
 
-CompileErr_t GetArgument(char *token,
-                         StackElemType_t *op_code,
-                         StackElemType_t *num_arg,
-                         StackElemType_t *reg_arg,
-                         LabelArray *labels,
-                         size_t line_number)
+static CompileErr_t GetArgument(char *token,
+                                ArgsAndInst *args_and_instr,
+                                LabelArray *labels,
+                                size_t line_number)
 {
     size_t code = 0;
-    if (IsJmpOpCode(*op_code))
-    {
-        *num_arg = GetLabelIp(token, labels);
 
-        if (*num_arg == -1)
+    if (IsJmpOpCode(args_and_instr->op_code))
+    {
+        args_and_instr->num_arg = GetLabelIp(token, labels);
+
+        if (args_and_instr->num_arg == -1)
         {
             printf("\n>>misiing label: '%s'! LINE: %d!\n", token, line_number + 1);
 
             return kMissingLabel;
         }
 
-        SET_NUM_BIT(*op_code);
+        SET_NUM_BIT(args_and_instr->op_code);
         return kSuccess;
     }
 
@@ -318,9 +349,9 @@ CompileErr_t GetArgument(char *token,
 
     if (*token == '[')
     {
-        SET_RAM_BIT(*op_code);
+        SET_RAM_BIT(args_and_instr->op_code);
 
-        ParseSquareBrakets(token, &num, &reg, num_arg, reg_arg, op_code, line_number);
+        ParseSquareBrakets(token, &num, &reg, args_and_instr, line_number);
 
         if (reg != nullptr)
         {
@@ -330,11 +361,13 @@ CompileErr_t GetArgument(char *token,
 
                 return kIncorrectInput;
             }
-            CHECK(reg_arg);
-            *reg_arg = SeekRegister(reg);
-            SET_REG_BIT(*op_code);
+
+            args_and_instr->reg_arg = SeekRegister(reg);
+
+            SET_REG_BIT(args_and_instr->op_code);
 
         }
+
         if (num != nullptr)
         {
 
@@ -344,9 +377,10 @@ CompileErr_t GetArgument(char *token,
 
                 return kIncorrectInput;
             }
-            CHECK(num_arg);
-            *num_arg = atoi(num);
-            SET_NUM_BIT(*op_code);
+
+            args_and_instr->num_arg = atoi(num);
+
+            SET_NUM_BIT(args_and_instr->op_code);
 
         }
 
@@ -354,15 +388,15 @@ CompileErr_t GetArgument(char *token,
     }
     else if ((code = SeekRegister(token)) != kEmmNum)
     {
-        *reg_arg = SeekRegister(token);
+        args_and_instr->reg_arg = SeekRegister(token);
 
-        SET_REG_BIT(*op_code);
+        SET_REG_BIT(args_and_instr->op_code);
     }
     else
     {
-        *num_arg = atoi(token);
+        args_and_instr->num_arg = atoi(token);
 
-        SET_NUM_BIT(*op_code);
+        SET_NUM_BIT(args_and_instr->op_code);
     }
     return kSuccess;
 }
@@ -371,7 +405,7 @@ static void SkipSpaces(char **line)
 {
     while ((**line == ' ' || **line == '\t') && **line != '\0')
     {
-        ++(*line);
+        *((*line)++) = '\0';
     }
 }
 
@@ -398,33 +432,30 @@ void GetCommandAndArgsFromStr(char *line, char **command, char **args)
         *args = line;
     }
 
+    while(!isspace(*line) && *line != '\0')
+    {
+        ++line;
+    }
+    *line = '\0';
 }
 
 CompileErr_t ParseLine(char *line,
-                       StackElemType_t *op_code,
-                       StackElemType_t *num_arg,
-                       StackElemType_t *reg_arg,
+                       ArgsAndInst *args_and_instr,
                        LabelArray *labels,
                        size_t line_number)
 {
-    char *comment = strchr(line, ';');
-
-    if (comment != nullptr)
-    {
-        *comment = '\0';
-    }
+    MissComment(line);
 
     char *command = nullptr;
     char *args    = nullptr;
 
 
     GetCommandAndArgsFromStr(line, &command, &args);
-
     size_t code = SeekCommand(command);
 
     if (code != kNotACommand && code != kLabel)
     {
-        *op_code |= code;
+        args_and_instr->op_code = code;
     }
     else if (code == kLabel)
     {
@@ -435,42 +466,41 @@ CompileErr_t ParseLine(char *line,
     {
         if (args)
         {
-            GetArgument(args, op_code, num_arg, reg_arg, labels, line_number);
+            GetArgument(args, args_and_instr, labels, line_number);
         }
         else
         {
             printf("\n>>command must have argument, line: %d!\n", line_number);
         }
     }
+
     return kSuccess;
 }
 
+static void MissComment(char *line)
+{
+    char *comment = nullptr;
 
+    if ((comment = strchr(line, ';')) != nullptr)
+    {
+        *comment = '\0';
+    }
+}
 
 CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 {
-    StackElemType_t  op_code = 0;
-    StackElemType_t  num_arg = 0;
-    StackElemType_t  reg_arg = 0;
+    ArgsAndInst args_and_instr = {};
 
     for (size_t i = 0; i < text->lines_count; i++)
     {
-        char *comment = nullptr;
-        if ((comment = strchr(text->lines_ptr[i], ';')) != nullptr)
-        {
-            *comment = '\0';
-        }
+        MissComment(text->lines_ptr[i]);
 
-        op_code = 0;
-        num_arg = 0;
-        reg_arg = 0;
+        args_and_instr = {0};
 
         CompileErr_t status = kSuccess;
 
         if ((status = ParseLine(text->lines_ptr[i],
-                                &op_code,
-                                &num_arg,
-                                &reg_arg,
+                                &args_and_instr,
                                 labels,
                                 i)) == kFoundLabel)
         {
@@ -482,15 +512,15 @@ CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
             return status;
         }
 
-        codes->codes_array[codes->size++] = op_code;
+        codes->codes_array[codes->size++] = args_and_instr.op_code;
 
-        if (GET_REG_BIT(op_code))
+        if (GET_REG_BIT(args_and_instr.op_code))
         {
-            codes->codes_array[codes->size++] = reg_arg;
+            codes->codes_array[codes->size++] = args_and_instr.reg_arg;
         }
-        if (GET_NUM_BIT(op_code))
+        if (GET_NUM_BIT(args_and_instr.op_code))
         {
-            codes->codes_array[codes->size++] = num_arg;
+            codes->codes_array[codes->size++] = args_and_instr.num_arg;
         }
     }
 
@@ -540,6 +570,10 @@ char DecodeLine(FILE *output_file, char *line)
 
 CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
 {
+    CHECK(text);
+    CHECK(text_copy);
+    CHECK(file_name);
+
     LabelArray labels = {};
     InitLabelArray(&labels);
 
@@ -554,14 +588,20 @@ CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
 
         return kAllocError;
     }
-    if (EncodeText(text, &labels, &codes) != kSuccess)
+    CompileErr_t status = EncodeText(text, &labels, &codes);
+
+    if (status != kSuccess)
     {
         printf(">>Compile error...\n");
+
+        LabelArrayDtor(&labels);
+        CodeDtor(&codes);
+
+        return status;
     }
 
-    WriteInTxt(file_name, &codes);
-
-    WriteInBin("output.bin", &codes);
+    WriteInTxt("table.txt", &codes);
+    WriteInBin(file_name, &codes);
     WriteListing("listing.txt", &codes);
 
     LabelArrayDtor(&labels);
@@ -571,12 +611,14 @@ CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
 }
 
 
+
 CompileErr_t CodeDtor(Code *codes)
 {
     free(codes->codes_array);
 
     return kSuccess;
 }
+
 
 
 size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
@@ -624,10 +666,10 @@ size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
     return token_number;
 }
 
-static const size_t kMaxLabelCount = 20;
 
 CompileErr_t InitLabelArray(LabelArray *labels)
 {
+    static const size_t kMaxLabelCount = 20;
     labels->capacity = kMaxLabelCount;
     labels->array = (Label *) calloc(labels->capacity, sizeof(Label));
 
@@ -659,12 +701,16 @@ CompileErr_t ReallocLabelArray(LabelArray *labels)
     return kSuccess;
 }
 
+
+
 CompileErr_t LabelArrayDtor(LabelArray *labels)
 {
     free(labels->array);
 
     return kSuccess;
 }
+
+
 
 int GetLabelIp(char *token, LabelArray *labels)
 {
@@ -692,7 +738,7 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         return kOpenError;
     }
 
-    fprintf(output_file, "\t\t\t\t\t\t\tSPU listing by SANEKDASH\n");
+    fprintf(output_file, "\t\t\t\t\t\t\tSPU bin-code table by SANEKDASH\n");
     fprintf(output_file, "+------------+------------+------------+------------+------------+------------+------------+\n"
                          "|  op name   |   opcode   | hex opcode |reg argument|  reg code  |num argument|hex argument|\n"
                          "+------------+------------+------------+------------+------------+------------+------------+\n");
@@ -705,9 +751,11 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
                 i,
                 codes->codes_array[i],
                 codes->codes_array[i]);
+
         if (GET_REG_BIT(code))
         {
             ++i;
+
             fprintf(output_file, "%-6s(%-4d)|%-12d|",
                     RegisterArray[codes->codes_array[i]].reg_name,
                     i,
@@ -746,8 +794,7 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
 
 
 
-CompileErr_t WriteInBin(const char *file_name,
-                        Code *codes)
+CompileErr_t WriteInBin(const char *file_name, Code *codes)
 {
     FILE *output_file = fopen(file_name, "wb");
 
@@ -770,8 +817,9 @@ CompileErr_t WriteInBin(const char *file_name,
     return kSuccess;
 }
 
-CompileErr_t WriteListing(const char *file_name,
-                          Code *codes)
+
+
+CompileErr_t WriteListing(const char *file_name, Code *codes)
 {
     FILE *output_file = fopen(file_name, "w");
 
@@ -781,66 +829,65 @@ CompileErr_t WriteListing(const char *file_name,
 
         return kOpenError;
     }
-
+    fprintf(output_file, "| op_code | reg_arg  | num_arg  |\n\n");
     for (size_t i = 0; i < codes->size;)
     {
         StackElemType_t op_code  = codes->codes_array[i++];
         StackElemType_t num      = 0;
         StackElemType_t reg_code = 0;
 
-        fprintf(output_file, "%08X ", op_code);
+        fprintf(output_file, "0x%08X ", op_code);
 
         if (GET_REG_BIT(op_code))
         {
             reg_code = codes->codes_array[i++];
-            fprintf(output_file, "%08X ", reg_code);
+            fprintf(output_file, "0x%08X ", reg_code);
         }
+        else
+        {
+            fprintf(output_file, "           ");
+        }
+
         if (GET_NUM_BIT(op_code))
         {
             num = codes->codes_array[i++];
-            fprintf(output_file, "%08X", num);
+            fprintf(output_file, "0x%08X", num);
+        }
+        else
+        {
+            fprintf(output_file, "           ");
         }
 
-        fprintf(output_file, "\t\t\t\t%s ",
-                CommandArray[GET_OPCODE(op_code)].command_name);
+        fprintf(output_file, "\t\t\t%s ", CommandArray[GET_OPCODE(op_code)].command_name);
 
         if (GET_RAM_BIT(op_code))
         {
             if (GET_NUM_BIT(op_code) && GET_REG_BIT(op_code))
             {
-                fprintf(output_file, "[%s + %d]",
-                        RegisterArray[reg_code].reg_name,
-                        num);
+                fprintf(output_file, "[%s + %d]", RegisterArray[reg_code].reg_name, num);
             }
             else if (GET_REG_BIT(op_code))
             {
-                fprintf(output_file, "[%s]",
-                        RegisterArray[reg_code].reg_name);
+                fprintf(output_file, "[%s]", RegisterArray[reg_code].reg_name);
             }
             else if (GET_NUM_BIT(op_code))
             {
-                fprintf(output_file, "[%d]",
-                        num);
+                fprintf(output_file, "[%d]", num);
             }
         }
         else
         {
             if (GET_REG_BIT(op_code))
             {
-                fprintf(output_file, "%s",
-                        RegisterArray[reg_code].reg_name);
+                fprintf(output_file, "%s", RegisterArray[reg_code].reg_name);
             }
             else if (GET_NUM_BIT(op_code))
             {
-                fprintf(output_file, "%d",
-                        num);
+                fprintf(output_file, "%d", num);
             }
         }
 
         fprintf(output_file ,"\n\n");
-
-
-
     }
 
     if (fclose(output_file) == EOF)
