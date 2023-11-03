@@ -4,10 +4,14 @@
     push 10
     pop rbx
 
-    push 6
+    in
     pop rcx
 
-    push 0
+    push 44
+    push 7
+    div
+	push 40
+div
     pop rdx
 
 again:

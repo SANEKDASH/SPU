@@ -13,21 +13,6 @@
 
 #define DEBUG
 
-FILE *dump_file = nullptr;
-
-static void InitCpuDump()
-{
-    FILE *dump_file = fopen("cpu_dump.txt", "w");
-}
-
-
-
-static void CloseCpuDump()
-{
-    fclose(dump_file);
-}
-
-
 
 CompileErr_t CpuInit(CPU *cpu)
 {
@@ -80,8 +65,6 @@ CommandCode_t SeekByteCommand(const int code)
 
 CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
 {
-    INIT_LOG;
-
     #define PUSH(expr) Push(&cpu->stack, expr)
     #define POP(arg)   Pop(&cpu->stack, arg)
 
@@ -91,8 +74,6 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
 
     for (; cpu->ip < codes->capacity;)
     {
-        CpuDump(cpu, codes);
-
         StackElemType_t code = codes->codes_array[cpu->ip++];
 
         switch (GET_OPCODE(code))
@@ -144,7 +125,6 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
     }
 
     StackDtor(&call_stack);
-    CLOSE_LOG;
 
     return kSuccess;
 
@@ -152,11 +132,3 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
 
 
 
-CompileErr_t CpuDump(CPU *cpu, Code *codes)
-{
-    fprintf(dump_file, "\t\t\tCPU DUMP:\n\n");
-
-    fprintf(dump_file, "\tip = %d\n", cpu->ip);
-
-    fprintf(dump_file, "\nexecuting command: %s\n", CommandArray[codes->codes_array[cpu->ip]].command_name);
-}

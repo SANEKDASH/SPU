@@ -461,7 +461,6 @@ int CloseLog()
     fclose(LogFile);
 
     int errcode = errno;
-    printf("%d\n", errno);
     if (errcode != 0)
     {
         printf("failed to close log (error: %s)\n", strerror(errcode));

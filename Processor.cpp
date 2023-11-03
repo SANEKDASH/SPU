@@ -20,15 +20,14 @@ int main(int argc, char *argv[])
 
         return -1;
     }
-
     const char *src_file = argv[1];
 
     CPU cpu = {};
     CpuInit(&cpu);
+    StackInit(&cpu.stack);
 
     Code codes = {};
 
-    StackInit(&cpu.stack);
 
     ReadCode(&codes, src_file);
 
@@ -37,6 +36,8 @@ int main(int argc, char *argv[])
     CpuDtor(&cpu);
 
     CLOSE_LOG;
+
+    return 0;
 
     return 0;
 }

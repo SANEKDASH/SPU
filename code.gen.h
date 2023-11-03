@@ -33,7 +33,6 @@ DEF_CMD(kPush,  0, "push", true,
 
     if (GET_RAM_BIT(code))
     {
-        printf("%d\n", instr_arg);
         PUSH(cpu->RAM[instr_arg]);
     }
     else
@@ -58,19 +57,20 @@ DEF_CMD(kMult,  2, "mult", false,
     POP(&l_arg);
     POP(&r_arg);
 
-    ArgType_t res = (l_arg * r_arg) / 1000000;
+    ArgType_t res = (l_arg * r_arg) / (kPrecision * kPrecision);
     res *= 1000;
     PUSH(res);
+    //PUSH(l_arg * r_arg / kPrecision);
 )
 
 DEF_CMD(kDiv ,  3, "div", false,
-    double l_arg = 0;
-    double r_arg = 0;
+    StackElemType_t l_arg = 0;
+    StackElemType_t r_arg = 0;
 
     POP((ArgType_t *) &r_arg);
     POP((ArgType_t *) &l_arg);
 
-    double res = l_arg / r_arg * kPrecision;
+    double res = ((double) l_arg / (double) r_arg) * kPrecision;
     PUSH((int)res);
 )
 
@@ -185,4 +185,25 @@ DEF_CMD(kDraw, 14, "draw", false,
         }
     }
     //system("cls");
+)
+
+DEF_CMD(kShow, 15, "show", false,
+    system("cls");
+    for (size_t i = 0; i < kMaxRamSize; i++)
+    {
+        if (cpu->RAM[i] / kPrecision == 0)
+        {
+            ColorPrintf(kGrey, "[.]");
+        }
+        else if (cpu->RAM[i] / kPrecision == 1)
+        {
+            ColorPrintf(kWhite, "[*]");
+        }
+
+        if (((i + 1) % 20) == 0)
+        {
+            putchar('\n');
+        }
+    }
+    system("cls");
 )

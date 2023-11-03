@@ -15,21 +15,61 @@
     push 0
     out
 
-    hlt         ;the end
+    hlt
+
+
+linear:
+    push 0
+    push rbx
+
+    je b_zero
+
+    push -1
+    push rcx
+    mult
+
+    push rbx
+
+    div
+
+    push 1
+    out
+    out
+
+    hlt
 
 
 
-input:
-    in
-    pop rax
+salve:
+    push 0
+    push rax
 
-    in
-    pop rbx
+    je linear
 
-    in
-    pop rcx
+    call first_root
+    call second_root
 
-    ret
+    push [1]
+    push [2]
+
+    jne two_roots
+
+    push 1
+    out
+
+    out
+
+    hlt
+
+
+
+two_roots:
+    push 2
+    out
+    out
+    out
+
+    hlt
 
 
 
@@ -42,8 +82,6 @@ b_zero:
 
     hlt
 
-    ret
-
 
 
 inf_roots:
@@ -51,6 +89,18 @@ inf_roots:
     out
 
     hlt
+
+
+
+input:
+    in
+    pop rax
+
+    in
+    pop rbx
+
+    in
+    pop rcx
 
     ret
 
@@ -88,7 +138,6 @@ first_root:
     push rax
     mult
     div
-
     pop [1]
 
     ret
@@ -116,64 +165,7 @@ second_root:
 
 
 
-linear:
-    push 0
-    push rbx
 
-    je b_zero
-
-    push -1
-    push rcx
-    mult
-
-    push rbx
-
-    div
-
-    push 1
-    out
-    out
-
-    hlt
-
-    ret
-
-
-
-salve:
-    push 0
-    push rax
-
-    je linear
-
-    call first_root
-    call second_root
-
-    push [1]
-    push [2]
-
-    jne two_roots
-
-    push 1
-    out
-
-    out
-
-    hlt
-
-    ret
-
-
-
-two_roots:
-    push 2
-    out
-    out
-    out
-
-    hlt
-
-    ret
 
 
 

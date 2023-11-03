@@ -77,6 +77,7 @@ CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
     }
 
     size_t check_read = fread(text->buf, sizeof(char), text->buf_size - 1, input_file);
+
     if (check_read != (text->buf_size - 1))
     {
         perror("\n>>ReadTextFromFile() failed to read from file");
@@ -235,6 +236,8 @@ static bool IsJmpOpCode(StackElemType_t op_code)
            op_code == kJne;
 }
 
+
+
 static CompileErr_t ParseSquareBrakets(char *line,
                                        char **num_str,
                                        char **reg_str,
@@ -322,6 +325,8 @@ static CompileErr_t ParseSquareBrakets(char *line,
     return kSuccess;
 }
 
+
+
 static CompileErr_t GetArgument(char *token,
                                 ArgsAndInst *args_and_instr,
                                 LabelArray *labels,
@@ -336,11 +341,11 @@ static CompileErr_t GetArgument(char *token,
         if (args_and_instr->num_arg == -1)
         {
             printf("\n>>misiing label: '%s'! LINE: %d!\n", token, line_number + 1);
-
             return kMissingLabel;
         }
 
         SET_NUM_BIT(args_and_instr->op_code);
+
         return kSuccess;
     }
 
@@ -358,7 +363,6 @@ static CompileErr_t GetArgument(char *token,
             if (*reg == '\0')
             {
                 printf(">>Incorect input! LINE: %d.\n", line_number);
-
                 return kIncorrectInput;
             }
 
@@ -374,7 +378,6 @@ static CompileErr_t GetArgument(char *token,
             if (*num == '\0')
             {
                 printf(">>Incorect input! LINE: %d.\n", line_number);
-
                 return kIncorrectInput;
             }
 
@@ -398,8 +401,11 @@ static CompileErr_t GetArgument(char *token,
 
         SET_NUM_BIT(args_and_instr->op_code);
     }
+
     return kSuccess;
 }
+
+
 
 static void SkipSpaces(char **line)
 {
@@ -439,6 +445,8 @@ void GetCommandAndArgsFromStr(char *line, char **command, char **args)
     *line = '\0';
 }
 
+
+
 CompileErr_t ParseLine(char *line,
                        ArgsAndInst *args_and_instr,
                        LabelArray *labels,
@@ -466,7 +474,7 @@ CompileErr_t ParseLine(char *line,
     {
         if (args)
         {
-            GetArgument(args, args_and_instr, labels, line_number);
+             GetArgument(args, args_and_instr, labels, line_number);
         }
         else
         {
@@ -477,6 +485,8 @@ CompileErr_t ParseLine(char *line,
     return kSuccess;
 }
 
+
+
 static void MissComment(char *line)
 {
     char *comment = nullptr;
@@ -486,6 +496,8 @@ static void MissComment(char *line)
         *comment = '\0';
     }
 }
+
+
 
 CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 {
@@ -586,8 +598,12 @@ CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
     {
         perror("\n>>CompileText() failed to allocate memory with 'calloc'\n");
 
+        LabelArrayDtor(&labels);
+        CodeDtor(&codes);
+
         return kAllocError;
     }
+
     CompileErr_t status = EncodeText(text, &labels, &codes);
 
     if (status != kSuccess)
@@ -667,6 +683,7 @@ size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
 }
 
 
+
 CompileErr_t InitLabelArray(LabelArray *labels)
 {
     static const size_t kMaxLabelCount = 20;
@@ -684,6 +701,8 @@ CompileErr_t InitLabelArray(LabelArray *labels)
 
     return kSuccess;
 }
+
+
 
 CompileErr_t ReallocLabelArray(LabelArray *labels)
 {

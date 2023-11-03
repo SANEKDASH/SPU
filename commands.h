@@ -104,7 +104,7 @@ struct LabelArray
     size_t capacity;
 };
 
-static const int kCommandCount = 22;
+static const int kCommandCount = 23;
 
 const Command CommandArray[kCommandCount] =
 {
