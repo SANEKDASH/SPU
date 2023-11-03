@@ -167,7 +167,6 @@ DEF_CMD(kRet , 13, "ret", false,
 )
 
 DEF_CMD(kDraw, 14, "draw", false,
-    //system("cls");
     for (size_t i = 0; i < kMaxRamSize; i++)
     {
         if (cpu->RAM[i] / kPrecision == 0)
@@ -184,11 +183,9 @@ DEF_CMD(kDraw, 14, "draw", false,
             putchar('\n');
         }
     }
-    //system("cls");
 )
 
 DEF_CMD(kShow, 15, "show", false,
-    system("cls");
     for (size_t i = 0; i < kMaxRamSize; i++)
     {
         if (cpu->RAM[i] / kPrecision == 0)
@@ -205,5 +202,7 @@ DEF_CMD(kShow, 15, "show", false,
             putchar('\n');
         }
     }
-    system("cls");
+
+
+    rewind(stdout);
 )

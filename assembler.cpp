@@ -25,7 +25,7 @@ static CompileErr_t GetArgument(char *token,
                                 LabelArray *labels,
                                 size_t line_number);
 
-static void MissComment(char *line);
+static void MissComment(char **line);
 
 
 void TextDtor(Text *text)
@@ -115,7 +115,6 @@ size_t SplitBufIntoWords(char *buf)
             {
                 *(buf++) = '\0';
             }
-
         }
         else
         {
@@ -211,7 +210,9 @@ ArgCode_t SeekRegister(const char *token)
     }
 
     char *num_end;
+
     strtod(token, &num_end);
+
     SkipSpaces(&num_end);
 
     if (*num_end == '\0')
@@ -452,13 +453,18 @@ CompileErr_t ParseLine(char *line,
                        LabelArray *labels,
                        size_t line_number)
 {
-    MissComment(line);
+    MissComment(&line);
+
+    if (*line == '\0')
+    {
+        return kCommentLine;
+    }
 
     char *command = nullptr;
     char *args    = nullptr;
 
-
     GetCommandAndArgsFromStr(line, &command, &args);
+
     size_t code = SeekCommand(command);
 
     if (code != kNotACommand && code != kLabel)
@@ -487,13 +493,15 @@ CompileErr_t ParseLine(char *line,
 
 
 
-static void MissComment(char *line)
+static void MissComment(char **line)
 {
     char *comment = nullptr;
 
-    if ((comment = strchr(line, ';')) != nullptr)
+    if ((comment = strchr(*line, ';')) != nullptr)
     {
         *comment = '\0';
+
+        SkipSpaces(line);
     }
 }
 
@@ -505,8 +513,6 @@ CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 
     for (size_t i = 0; i < text->lines_count; i++)
     {
-        MissComment(text->lines_ptr[i]);
-
         args_and_instr = {0};
 
         CompileErr_t status = kSuccess;
@@ -514,7 +520,7 @@ CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
         if ((status = ParseLine(text->lines_ptr[i],
                                 &args_and_instr,
                                 labels,
-                                i)) == kFoundLabel)
+                                i)) == kFoundLabel || status == kCommentLine)
         {
             continue;
         }
@@ -665,8 +671,9 @@ size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
                 {
                     ReallocLabelArray(labels);
                 }
+
                 labels->array[labels->label_count].label_name = token;
-                labels->array[labels->label_count].ip = token_number;
+                labels->array[labels->label_count].ip         = token_number;
 
                 ++labels->label_count;
             }

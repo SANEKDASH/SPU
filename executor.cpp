@@ -103,9 +103,6 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
                     cpu->ip = pos;                               \
                 }                                                \
                                                                  \
-                PUSH(r_arg);                                     \
-                PUSH(l_arg);                                     \
-                                                                 \
                 break;                                           \
             }
 

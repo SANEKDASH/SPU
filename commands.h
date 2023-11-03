@@ -31,6 +31,7 @@ typedef enum
     kReadingError   = 11,
     kReallocError   = 12,
     kIncorrectInput = 13,
+    kCommentLine    = 14,
 } CompileErr_t;
 
 typedef enum

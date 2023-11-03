@@ -1,40 +1,42 @@
     in
     pop rax
 
-    push 1
-    pop rbx
-
-    push 1
-    pop rcx
+    push rax
 
     call factorial
 
-    push rcx
     out
 
     hlt
 
+ ;Arguments : stack top, rax
+ ;
+ ;Destroys : rax
+ ;
+ ;Result : stack top
+ ;
+ ;Calculates factorial of a number that is placed in rax register
+
 factorial:
-
-    push rcx
-    push rbx
-
-    mult
-    pop rcx
-
+    push 0
+    push rax
+    je fuck ; if a == 0
 
     push 1
-    push rbx
-    add
-    pop rbx
+    push rax
+    je fuck ; if a == 1
 
     push rax
-    push rbx
+    push 1
+    sub
+    pop rax
 
-    ja fuck
+    push rax
 
     call factorial
 
+    mult
 fuck:
+
 
     ret

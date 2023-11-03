@@ -1,21 +1,21 @@
     call input
 
-    call discriminant
-
-    push 0
-    push rdx
-
-    jae salve
-
     push rax
     push 0
 
     je linear
 
+    call discriminant
+
+    push rdx
+
+    jae salve
+
     push 0
     out
 
     hlt
+
 
 
 linear:
@@ -27,12 +27,11 @@ linear:
     push -1
     push rcx
     mult
-
     push rbx
-
     div
 
     push 1
+
     out
     out
 
@@ -56,7 +55,7 @@ salve:
 
     push 1
     out
-
+    push [1]
     out
 
     hlt
@@ -66,7 +65,11 @@ salve:
 two_roots:
     push 2
     out
+
+    push [1]
     out
+
+    push [2]
     out
 
     hlt

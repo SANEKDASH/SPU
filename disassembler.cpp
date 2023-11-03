@@ -34,7 +34,6 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
 
         return kReadingError;
     }
-    // ???
 
     if (fclose(input_file) == EOF)
     {
@@ -91,11 +90,15 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
             i++;
             if (GET_RAM_BIT(op_code))
             {
-                fprintf(output_file, "%s [%d]\n", CommandArray[GET_OPCODE(op_code)].command_name, codes.codes_array[i]);
+                fprintf(output_file, "%s [%d]\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        codes.codes_array[i]);
             }
             else
             {
-                fprintf(output_file, "%s %d\n", CommandArray[GET_OPCODE(op_code)].command_name, codes.codes_array[i]);
+                fprintf(output_file, "%s %d\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        codes.codes_array[i]);
             }
         }
         else if (GET_REG_BIT(codes.codes_array[i]))
@@ -103,22 +106,27 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
             size_t reg_code = codes.codes_array[++i];
             if (GET_RAM_BIT(op_code))
             {
-                fprintf(output_file, "%s [%s]\n", CommandArray[GET_OPCODE(op_code)].command_name, RegisterArray[reg_code].reg_name);
+                fprintf(output_file, "%s [%s]\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        RegisterArray[reg_code].reg_name);
             }
             else
             {
-                fprintf(output_file, "%s %s\n", CommandArray[GET_OPCODE(op_code)].command_name, RegisterArray[reg_code].reg_name);
+                fprintf(output_file, "%s %s\n",
+                        CommandArray[GET_OPCODE(op_code)].command_name,
+                        RegisterArray[reg_code].reg_name);
             }
         }
         else
         {
-            fprintf(output_file, "%s\n", CommandArray[GET_OPCODE(op_code)].command_name);
+            fprintf(output_file, "%s\n",
+                    CommandArray[GET_OPCODE(op_code)].command_name);
         }
     }
 
     free(codes.codes_array);
 
-    fclose(output_file);//check
+    fclose(output_file);
 
     return kSuccess;
 }

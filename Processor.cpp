@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 
         return -1;
     }
+
     const char *src_file = argv[1];
 
     CPU cpu = {};
@@ -27,8 +28,6 @@ int main(int argc, char *argv[])
     StackInit(&cpu.stack);
 
     Code codes = {};
-
-
     ReadCode(&codes, src_file);
 
     ExecuteCommands(&cpu, &codes);
@@ -36,8 +35,6 @@ int main(int argc, char *argv[])
     CpuDtor(&cpu);
 
     CLOSE_LOG;
-
-    return 0;
 
     return 0;
 }
