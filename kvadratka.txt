@@ -17,7 +17,6 @@
     hlt
 
 
-
 linear:
     push 0
     push rbx
@@ -36,7 +35,6 @@ linear:
     out
 
     hlt
-
 
 
 salve:
@@ -61,7 +59,6 @@ salve:
     hlt
 
 
-
 two_roots:
     push 2
     out
@@ -75,7 +72,6 @@ two_roots:
     hlt
 
 
-
 b_zero:
     push 0
     push rcx
@@ -86,7 +82,6 @@ b_zero:
     hlt
 
 
-
 inf_roots:
     push 3
     out
@@ -94,6 +89,13 @@ inf_roots:
     hlt
 
 
+ ;Arguments: rax, rbx, rcx
+ ;
+ ;Destroys: -
+ ;
+ ;Result: rax, rbx, rcx
+ ;
+ ;Reads coefficients for quadratic equation
 
 input:
     in
@@ -108,6 +110,13 @@ input:
     ret
 
 
+ ;Arguments: rax, rbx, rdx, rcx
+ ;
+ ;Destroys: -
+ ;
+ ;Result: rdx
+ ;
+ ;Calculates discriminant
 
 discriminant:
     push rbx
@@ -127,6 +136,13 @@ discriminant:
     ret
 
 
+ ;Arguments: rax, rbx, rdx, RAM[1]
+ ;
+ ;Destroys:
+ ;
+ ;Result: RAM[1]
+ ;
+ ;Calculates first root of quadratic equation
 
 first_root:
     push -1
@@ -146,6 +162,13 @@ first_root:
     ret
 
 
+ ;Arguments: rax, rbx, rdx, RAM[2]
+ ;
+ ;Destroys:
+ ;
+ ;Result: RAM[2]
+ ;
+ ;Calculates second root of quadratic equation
 
 second_root:
     push -1

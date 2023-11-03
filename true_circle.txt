@@ -27,6 +27,15 @@ again:
 
     hlt
 
+
+ ;Arguments: VRAM, rax, rbx, rdx
+ ;
+ ;Destroys: -
+ ;
+ ;Result: VRAM
+ ;
+ ;Sets point in VRAM
+
 set_point:
     call get_x
     call get_y
@@ -58,6 +67,15 @@ set_point:
 
     ret
 
+
+ ;Arguments: rax, rcx, rdx
+ ;
+ ;Destroys:
+ ;
+ ;Result: rax
+ ;
+ ;Calculates x coordinate of point
+
 get_x:
     push rax
     push rcx
@@ -69,6 +87,15 @@ get_x:
     pop rax
 
     ret
+
+
+ ;Arguments: rbx, rcx, rdx
+ ;
+ ;Destroys:
+ ;
+ ;Result: rvx
+ ;
+ ;Calculates y coordinate of point
 
 get_y:
     push rbx
