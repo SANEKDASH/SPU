@@ -17,6 +17,8 @@ typedef enum
 
 void SetColor(Colors color_code);
 
-void ColorPrintf(Colors color_code, const char *fmt, ...);
+void ColorPrintf(Colors color_code,
+                 const char *fmt,
+                 ...);
 
 #endif

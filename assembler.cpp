@@ -28,6 +28,7 @@ static CompileErr_t GetArgument(char *token,
 static void MissComment(char **line);
 
 
+
 void TextDtor(Text *text)
 {
     CHECK(text);
@@ -152,6 +153,7 @@ void FillText(Text *text)
             {
                 ++i;
             }
+
             *(text->lines_ptr + words_pos++) = cur_word;
 
             cur_word = text->buf + i;
@@ -193,8 +195,7 @@ CommandCode_t SeekCommand(const char *word)
         return kLabel;
     }
 
-    return kNotACommand; // ?
-
+    return kNotACommand;
 }
 
 
@@ -364,13 +365,13 @@ static CompileErr_t GetArgument(char *token,
             if (*reg == '\0')
             {
                 printf(">>Incorect input! LINE: %d.\n", line_number);
+
                 return kIncorrectInput;
             }
 
             args_and_instr->reg_arg = SeekRegister(reg);
 
             SET_REG_BIT(args_and_instr->op_code);
-
         }
 
         if (num != nullptr)
@@ -379,13 +380,13 @@ static CompileErr_t GetArgument(char *token,
             if (*num == '\0')
             {
                 printf(">>Incorect input! LINE: %d.\n", line_number);
+
                 return kIncorrectInput;
             }
 
             args_and_instr->num_arg = atoi(num);
 
             SET_NUM_BIT(args_and_instr->op_code);
-
         }
 
         return kSuccess;
@@ -416,7 +417,9 @@ static void SkipSpaces(char **line)
     }
 }
 
-void GetCommandAndArgsFromStr(char *line, char **command, char **args)
+void GetCommandAndArgsFromStr(char *line,
+                              char **command,
+                              char **args)
 {
     SkipSpaces(&line);
 
@@ -443,6 +446,7 @@ void GetCommandAndArgsFromStr(char *line, char **command, char **args)
     {
         ++line;
     }
+
     *line = '\0';
 }
 
@@ -507,7 +511,9 @@ static void MissComment(char **line)
 
 
 
-CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
+CompileErr_t EncodeText(Text *text,
+                        LabelArray *labels,
+                        Code *codes)
 {
     ArgsAndInst args_and_instr = {};
 
@@ -517,10 +523,8 @@ CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 
         CompileErr_t status = kSuccess;
 
-        if ((status = ParseLine(text->lines_ptr[i],
-                                &args_and_instr,
-                                labels,
-                                i)) == kFoundLabel || status == kCommentLine)
+        if ((status = ParseLine(text->lines_ptr[i], &args_and_instr, labels, i)) == kFoundLabel ||
+             status == kCommentLine)
         {
             continue;
         }
@@ -547,14 +551,17 @@ CompileErr_t EncodeText(Text *text, LabelArray *labels, Code *codes)
 
 
 
-size_t GetBits(int num, size_t bit_count, size_t bit_pos)
+size_t GetBits(int num,
+               size_t bit_count,
+               size_t bit_pos)
 {
     return num & ((~((~0) << bit_count)) << bit_pos);
 }
 
 
 
-char DecodeLine(FILE *output_file, char *line)
+char DecodeLine(FILE *output_file,
+                char *line)
 {
     char *token = nullptr;
     token = strtok(line, " ");
@@ -586,12 +593,10 @@ char DecodeLine(FILE *output_file, char *line)
 
 
 
-CompileErr_t CompileText(Text *text, Text *text_copy ,const char *file_name)
+CompileErr_t CompileText(Text *text,
+                         Text *text_copy,
+                         const char *file_name)
 {
-    CHECK(text);
-    CHECK(text_copy);
-    CHECK(file_name);
-
     LabelArray labels = {};
     InitLabelArray(&labels);
 
@@ -643,7 +648,8 @@ CompileErr_t CodeDtor(Code *codes)
 
 
 
-size_t GetTokenNumber(Text *text_copy, LabelArray *labels)
+size_t GetTokenNumber(Text *text_copy,
+                      LabelArray *labels)
 {
     size_t token_number = 0;
     char *token = nullptr;
@@ -738,7 +744,8 @@ CompileErr_t LabelArrayDtor(LabelArray *labels)
 
 
 
-int GetLabelIp(char *token, LabelArray *labels)
+int GetLabelIp(char *token,
+               LabelArray *labels)
 {
     for (size_t i = 0; i < labels->label_count; i++)
     {
@@ -753,7 +760,8 @@ int GetLabelIp(char *token, LabelArray *labels)
 
 
 
-CompileErr_t WriteInTxt(const char *file_name, Code *codes)
+CompileErr_t WriteInTxt(const char *file_name,
+                        Code *codes)
 {
     FILE *output_file = fopen(file_name, "w");
 
@@ -768,6 +776,7 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
     fprintf(output_file, "+------------+------------+------------+------------+------------+------------+------------+\n"
                          "|  op name   |   opcode   | hex opcode |reg argument|  reg code  |num argument|hex argument|\n"
                          "+------------+------------+------------+------------+------------+------------+------------+\n");
+
     for (size_t i = 0; i < codes->size; i++)
     {
         StackElemType_t code = codes->codes_array[i];
@@ -782,7 +791,8 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         {
             ++i;
 
-            fprintf(output_file, "%-6s(%-4d)|%-12d|",
+            fprintf(output_file,
+                    "%-6s(%-4d)|%-12d|",
                     RegisterArray[codes->codes_array[i]].reg_name,
                     i,
                     codes->codes_array[i]);
@@ -795,7 +805,9 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
         if (GET_NUM_BIT(code))
         {
             ++i;
-            fprintf(output_file, "%-6d(%-4d)|0x%-8X  |\n",
+
+            fprintf(output_file,
+                    "%-6d(%-4d)|0x%-8X  |\n",
                     codes->codes_array[i],
                     i,
                     codes->codes_array[i]);
@@ -805,7 +817,8 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
             fprintf(output_file, "    ----    |    ----    |\n");
         }
 
-        fprintf(output_file, "+------------+------------+------------+------------+------------+------------+------------+\n");
+        fprintf(output_file,
+                "+------------+------------+------------+------------+------------+------------+------------+\n");
     }
 
     if (fclose(output_file) == EOF)
@@ -820,7 +833,8 @@ CompileErr_t WriteInTxt(const char *file_name, Code *codes)
 
 
 
-CompileErr_t WriteInBin(const char *file_name, Code *codes)
+CompileErr_t WriteInBin(const char *file_name,
+                        Code *codes)
 {
     FILE *output_file = fopen(file_name, "wb");
 
@@ -845,7 +859,8 @@ CompileErr_t WriteInBin(const char *file_name, Code *codes)
 
 
 
-CompileErr_t WriteListing(const char *file_name, Code *codes)
+CompileErr_t WriteListing(const char *file_name,
+                          Code *codes)
 {
     FILE *output_file = fopen(file_name, "w");
 
@@ -855,7 +870,9 @@ CompileErr_t WriteListing(const char *file_name, Code *codes)
 
         return kOpenError;
     }
+
     fprintf(output_file, "| op_code | reg_arg  | num_arg  |\n\n");
+
     for (size_t i = 0; i < codes->size;)
     {
         StackElemType_t op_code  = codes->codes_array[i++];

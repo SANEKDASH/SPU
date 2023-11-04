@@ -50,8 +50,8 @@ CompileErr_t WriteInBin(const char *file_name,
                         Code *codes);
 
 CompileErr_t EncodeText(Text *text,
-                LabelArray *labels,
-                Code *codes);
+                        LabelArray *labels,
+                        Code *codes);
 
 int GetLabelIp(char *token,
                LabelArray *labels);
@@ -62,13 +62,6 @@ char DecodeLine(FILE *output_file,
 void GetCommandAndArgsFromStr(char *line,
                               char **command,
                               char **args);
-
-CompileErr_t GetArgument(char *token,
-                         StackElemType_t *op_code,
-                         StackElemType_t *num_arg,
-                         StackElemType_t *reg_arg,
-                         LabelArray *labels,
-                         size_t line_number);
 
 CompileErr_t ParseLine(char *line,
                        ArgsAndInst *args,

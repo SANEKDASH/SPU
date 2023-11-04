@@ -117,7 +117,6 @@ const Command CommandArray[kCommandCount] =
 #undef DEF_CMD
 };
 
-
 const Register RegisterArray[kRegCount] =
 {
     kRegA, "rax",

@@ -11,7 +11,9 @@ void SetColor(Colors color_code)
     SetConsoleTextAttribute(hConsole, (short unsigned int) color_code);
 }
 
-void ColorPrintf(Colors color_code, const char *fmt, ...)
+void ColorPrintf(Colors color_code,
+                 const char *fmt,
+                 ...)
 {
     va_list arg_list;
     va_start(arg_list, fmt);

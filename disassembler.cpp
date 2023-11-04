@@ -7,9 +7,11 @@
 #include "assembler.h"
 #include "disassembler.h"
 
-CompileErr_t ReadCode(Code *codes, const char *file_name)
+CompileErr_t ReadCode(Code *codes,
+                      const char *file_name)
 {
     FILE *input_file = fopen(file_name, "rb");
+
     if (!input_file)
     {
         perror("ReadCode() failed to open input file");
@@ -20,6 +22,7 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
     codes->capacity = codes->size = GetFileSize(input_file) / sizeof(StackElemType_t);
 
     codes->codes_array = (StackElemType_t *) calloc(codes->capacity, sizeof(StackElemType_t));
+
     if (codes->codes_array == nullptr)
     {
         perror("ReadCode() failed to allocate memory");
@@ -28,6 +31,7 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
     }
 
     size_t ret_code = fread(codes->codes_array, sizeof(StackElemType_t), codes->capacity, input_file);
+
     if (ret_code != codes->capacity)
     {
         perror("ReadCode() failed to read");
@@ -45,7 +49,8 @@ CompileErr_t ReadCode(Code *codes, const char *file_name)
     return kSuccess;
 }
 
-CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_file_name)
+CompileErr_t DisassembleBinFile(const char *input_file_name,
+                                const char *output_file_name)
 {
     Code codes = {};
 
@@ -53,6 +58,7 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
     {
         return kDisasmError;
     }
+
     FILE *output_file = fopen(output_file_name, "w");
 
     if (output_file == nullptr)
@@ -65,10 +71,12 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
     for (size_t i = 0; i < codes.capacity; ++i)
     {
         StackElemType_t op_code = codes.codes_array[i];
+
         if (GET_NUM_BIT(op_code) && GET_REG_BIT(op_code))
         {
             StackElemType_t reg_arg = codes.codes_array[++i];
             StackElemType_t num_arg = codes.codes_array[i];
+
             if (GET_RAM_BIT(op_code))
             {
                 fprintf(output_file, "%s [%s+%d]\n",
@@ -85,9 +93,11 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
             }
 
         }
+
         if (GET_NUM_BIT(op_code))
         {
             i++;
+
             if (GET_RAM_BIT(op_code))
             {
                 fprintf(output_file, "%s [%d]\n",
@@ -104,6 +114,7 @@ CompileErr_t DisassembleBinFile(const char *input_file_name, const char *output_
         else if (GET_REG_BIT(codes.codes_array[i]))
         {
             size_t reg_code = codes.codes_array[++i];
+
             if (GET_RAM_BIT(op_code))
             {
                 fprintf(output_file, "%s [%s]\n",

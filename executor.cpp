@@ -63,7 +63,8 @@ CommandCode_t SeekByteCommand(const int code)
 
 
 
-CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
+CompileErr_t ExecuteCommands(CPU *cpu,
+                             Code *codes)
 {
     #define PUSH(expr) Push(&cpu->stack, expr)
     #define POP(arg)   Pop(&cpu->stack, arg)
@@ -109,6 +110,7 @@ CompileErr_t ExecuteCommands(CPU *cpu, Code *codes)
             #include "jumps.gen.h"
 
             #undef DEF_CMD
+
             default:
             {
                 printf("kavo?\n");

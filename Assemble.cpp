@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     {
         printf(">>You should put here name of input file.\n");
 
-        return 0;
+        return -1;
     }
 
     Text highlevel_code = {};
