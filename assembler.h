@@ -32,7 +32,7 @@ void PrintTextInFile(FILE *output_file,
 
 CommandCode_t SeekCommand(const char *word);
 
-ArgCode_t SeekRegister(const char *token);
+ArgCode_t RecognizeArgument(const char *token);
 
 CompileErr_t CodeDtor(Code *codes);
 

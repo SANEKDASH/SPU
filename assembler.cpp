@@ -28,6 +28,12 @@ static CompileErr_t GetArgument(char *token,
 static void MissComment(char **line);
 
 
+static CompileErr_t SetArgInBrackets(char **num_str,
+                           char **reg_str,
+                           ArgsAndInst *args_and_instr,
+                           size_t line_number);
+
+
 
 void TextDtor(Text *text)
 {
@@ -67,6 +73,7 @@ CompileErr_t ReadTextFromFile(Text *text, const char *file_name)
 
         return kOpenError;
     }
+
     text->buf_size = GetFileSize(input_file) + 1;
     text->buf       = (char *) calloc(text->buf_size, sizeof(char));
 
@@ -200,7 +207,7 @@ CommandCode_t SeekCommand(const char *word)
 
 
 
-ArgCode_t SeekRegister(const char *token)
+ArgCode_t RecognizeArgument(const char *token)
 {
     for (size_t i = 0; i < kRegCount; i++)
     {
@@ -240,6 +247,40 @@ static bool IsJmpOpCode(StackElemType_t op_code)
 
 
 
+static CompileErr_t SetArgInBrackets(char **num_str,
+                                     char **reg_str,
+                                     ArgsAndInst *args_and_instr,
+                                     size_t line_number)
+{
+    ArgCode_t status = RecognizeArgument(*reg_str);
+
+    if (status != kEmmNum && status != kNotAnArg)
+    {
+        args_and_instr->reg_arg = (StackElemType_t) status;
+
+        SET_REG_BIT(args_and_instr->op_code);
+    }
+    else if (status == kEmmNum)
+    {
+        *num_str = *reg_str;
+        *reg_str = nullptr;
+
+        args_and_instr->num_arg = atof(*num_str);
+
+        SET_NUM_BIT(args_and_instr->op_code);
+    }
+    else
+    {
+        printf(">>Incorrect arg! LINE: %d.\n", line_number);
+
+        return kIncorrectInput;
+    }
+
+    return kSuccess;
+}
+
+
+
 static CompileErr_t ParseSquareBrakets(char *line,
                                        char **num_str,
                                        char **reg_str,
@@ -268,31 +309,7 @@ static CompileErr_t ParseSquareBrakets(char *line,
         {
             *line = '\0';
 
-            ArgCode_t status = SeekRegister(*reg_str);
-
-            if (status != kEmmNum && status != kNotAnArg)
-            {
-                args_and_instr->reg_arg = (StackElemType_t) status;
-
-                SET_REG_BIT(args_and_instr->op_code);
-            }
-            else if (status == kEmmNum)
-            {
-                *num_str = *reg_str;
-                *reg_str = nullptr;
-
-                args_and_instr->num_arg = atof(*num_str);
-
-                SET_NUM_BIT(args_and_instr->op_code);
-            }
-            else
-            {
-                printf(">>Incorrect arg! LINE: %d.\n", line_number);
-
-                return kIncorrectInput;
-            }
-
-            return kSuccess;
+            return SetArgInBrackets(num_str, reg_str, args_and_instr, line_number);
 
             break;
         }
@@ -320,8 +337,10 @@ static CompileErr_t ParseSquareBrakets(char *line,
 
             return kUnclosedBraket;
         }
+
         ++line;
     }
+
     *line = '\0';
 
     return kSuccess;
@@ -343,6 +362,7 @@ static CompileErr_t GetArgument(char *token,
         if (args_and_instr->num_arg == -1)
         {
             printf("\n>>misiing label: '%s'! LINE: %d!\n", token, line_number + 1);
+
             return kMissingLabel;
         }
 
@@ -358,7 +378,10 @@ static CompileErr_t GetArgument(char *token,
     {
         SET_RAM_BIT(args_and_instr->op_code);
 
-        ParseSquareBrakets(token, &num, &reg, args_and_instr, line_number);
+        if (ParseSquareBrakets(token, &num, &reg, args_and_instr, line_number) != kSuccess)
+        {
+            return kCompileError;
+        }
 
         if (reg != nullptr)
         {
@@ -369,7 +392,7 @@ static CompileErr_t GetArgument(char *token,
                 return kIncorrectInput;
             }
 
-            args_and_instr->reg_arg = SeekRegister(reg);
+            args_and_instr->reg_arg = RecognizeArgument(reg);
 
             SET_REG_BIT(args_and_instr->op_code);
         }
@@ -391,17 +414,24 @@ static CompileErr_t GetArgument(char *token,
 
         return kSuccess;
     }
-    else if ((code = SeekRegister(token)) != kEmmNum)
+
+    if ((code = RecognizeArgument(token)) != kEmmNum && code != kNotAnArg)
     {
-        args_and_instr->reg_arg = SeekRegister(token);
+        args_and_instr->reg_arg = RecognizeArgument(token);
 
         SET_REG_BIT(args_and_instr->op_code);
     }
-    else
+    else if (code == kEmmNum)
     {
         args_and_instr->num_arg = atoi(token);
 
         SET_NUM_BIT(args_and_instr->op_code);
+    }
+    else
+    {
+        printf(">>Wrong argument! LINE: %d.\n", line_number);
+
+        return kWrongArgument;
     }
 
     return kSuccess;
@@ -416,6 +446,8 @@ static void SkipSpaces(char **line)
         *((*line)++) = '\0';
     }
 }
+
+
 
 void GetCommandAndArgsFromStr(char *line,
                               char **command,
@@ -479,16 +511,24 @@ CompileErr_t ParseLine(char *line,
     {
         return kFoundLabel;
     }
+    else
+    {
+        printf(">>Wrong command! LINE: %d.\n", line_number);
+
+        return kWrongCommand;
+    }
 
     if (CommandArray[code].have_arg)
     {
         if (args)
         {
-             GetArgument(args, args_and_instr, labels, line_number);
+            return GetArgument(args, args_and_instr, labels, line_number);
         }
         else
         {
             printf("\n>>command must have argument, line: %d!\n", line_number);
+
+            return kCompileError;
         }
     }
 

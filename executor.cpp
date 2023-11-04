@@ -11,7 +11,12 @@
 #include "disassembler.h"
 #include "color_print.h"
 
-#define DEBUG
+
+
+static StackElemType_t GetArgument(CPU *cpu,
+                                   Code *codes,
+                                   StackElemType_t op_code);
+
 
 
 CompileErr_t CpuInit(CPU *cpu)
@@ -45,6 +50,45 @@ CompileErr_t CpuDtor(CPU *cpu)
 }
 
 static const StackElemType_t kPrecision = 1000;
+
+
+
+static StackElemType_t GetArgument(CPU *cpu,
+                                   Code *codes,
+                                   StackElemType_t op_code)
+{
+    ArgType_t instr_arg = 0;
+    ArgType_t reg_arg   = 0;
+    ArgType_t num_arg   = 0;
+
+    if (GET_REG_BIT(op_code))
+    {
+        reg_arg = cpu->reg_array[codes->codes_array[cpu->ip++]];
+
+        if (GET_RAM_BIT(op_code))
+        {
+            reg_arg /= kPrecision;
+        }
+
+        instr_arg += reg_arg;
+    }
+
+    if (GET_NUM_BIT(op_code))
+    {
+        num_arg = codes->codes_array[cpu->ip++];
+
+        if (GET_RAM_BIT(op_code))
+        {
+            instr_arg += num_arg;
+        }
+        else
+        {
+            instr_arg += num_arg * kPrecision;
+        }
+    }
+
+    return instr_arg;
+}
 
 
 
@@ -98,6 +142,7 @@ CompileErr_t ExecuteCommands(CPU *cpu,
                                                                  \
                 POP(&l_arg);                                     \
                 POP(&r_arg);                                     \
+                                                                 \
                 size_t pos = codes->codes_array[cpu->ip++];      \
                 if (expr)                                        \
                 {                                                \

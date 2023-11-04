@@ -32,6 +32,7 @@ typedef enum
     kReallocError   = 12,
     kIncorrectInput = 13,
     kCommentLine    = 14,
+    kWrongArgument  = 15,
 } CompileErr_t;
 
 typedef enum

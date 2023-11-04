@@ -21,11 +21,11 @@
 factorial:
     push 0
     push rax
-    je fuck ; if a == 0
+    je fact_end ; if a == 0
 
     push 1
     push rax
-    je fuck ; if a == 1
+    je fact_end ; if a == 1
 
     push rax
     push 1
@@ -37,7 +37,7 @@ factorial:
     call factorial
 
     mult
-fuck:
 
+fact_end:
 
     ret

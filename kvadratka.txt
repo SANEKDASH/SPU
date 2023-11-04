@@ -16,7 +16,6 @@
 
     hlt
 
-
 linear:
     push 0
     push rbx
@@ -35,7 +34,6 @@ linear:
     out
 
     hlt
-
 
 salve:
     push 0
@@ -58,7 +56,6 @@ salve:
 
     hlt
 
-
 two_roots:
     push 2
     out
@@ -71,7 +68,6 @@ two_roots:
 
     hlt
 
-
 b_zero:
     push 0
     push rcx
@@ -80,7 +76,6 @@ b_zero:
     out
 
     hlt
-
 
 inf_roots:
     push 3
